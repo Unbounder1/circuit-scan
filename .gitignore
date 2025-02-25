@@ -1,1 +1,6 @@
-yolo11_50epoch.pt
+models/
+runs/
+output.json
+output.txt
+POC_Comparator.asc
+test.asc
