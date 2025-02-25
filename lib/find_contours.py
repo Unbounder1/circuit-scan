@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     # Remove objects other than junctions
     for box in bounding_boxes:
-        if box["class_id"] != 2:  # ignore junctions
+        if box["class_id"] != 1:  # ignore junctions
             x1 = int(box["x1"])
             y1 = int(box["y1"])
             x2 = int(box["x2"])
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     # Draw each contour as a 1-pixel wide line
     for cnt in contours:
-        cv2.polylines(contour_img, [cnt], isClosed=True, color=255, thickness=1)
+        cv2.polylines(contour_img, [cnt], isClosed=True, color=255, thickness=2)
 
     # Display the result for DFS path extraction
     cv2.imshow('1-Pixel Contours', contour_img)

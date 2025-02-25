@@ -40,8 +40,31 @@ def process_image(image):
 
     return bounding_boxes
 
+
+def resize_image(image, max_size=640):
+    """
+    Resize an image while maintaining aspect ratio such that the longest side is max_size.
+    
+    :param image: Input image (numpy array).
+    :param max_size: Maximum allowed dimension (width or height).
+    :return: Resized image.
+    """
+    h, w = image.shape[:2]
+
+    # Compute scaling factor while maintaining aspect ratio
+    scale = max_size / max(h, w)
+    
+    # Compute new dimensions
+    new_w = int(w * scale)
+    new_h = int(h * scale)
+    
+    resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    
+    return resized
+
+
 if __name__ == "__main__":
-    image = cv2.imread('image2.png')
+    image = resize_image(cv2.imread('image.png'))# resized image
     bounding_boxes = process_image(image)
 
     # show bounding boxes
