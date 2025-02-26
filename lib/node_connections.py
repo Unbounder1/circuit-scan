@@ -4,6 +4,24 @@ from scipy.spatial import KDTree
 import networkx as nx
 import matplotlib.pyplot as plt
 
+classes = [
+        "__background__", "text", "junction", "crossover", "terminal", "gnd", "vss",
+        "voltage.dc", "voltage.ac", "voltage.battery",
+        "resistor", "resistor.adjustable", "resistor.photo",
+        "capacitor.unpolarized", "capacitor.polarized", "capacitor.adjustable",
+        "inductor", "inductor.ferrite", "inductor.coupled", "transformer",
+        "diode", "diode.light_emitting", "diode.thyrector", "diode.zener",
+        "diac", "triac", "thyristor", "varistor",
+        "transistor.bjt", "transistor.fet", "transistor.photo",
+        "operational_amplifier", "operational_amplifier.schmitt_trigger", "optocoupler",
+        "integrated_circuit", "integrated_circuit.ne555", "integrated_circuit.voltage_regulator",
+        "xor", "and", "or", "not", "nand", "nor",
+        "probe", "probe.current", "probe.voltage",
+        "switch", "relay", "socket", "fuse",
+        "speaker", "motor", "lamp", "microphone", "antenna", "crystal",
+        "mechanical", "magnetic", "optical", "block", "explanatory", "unknown"
+    ]
+
 class node_graph:
     '''
     boxes: Bounding boxes in a numpy array -> NO TEXT BOXES
@@ -23,6 +41,13 @@ class node_graph:
         # Set up using DFS: ------
         self.adjacency_list = {}
 
+        self.create_graph_from_image()
+
+    def __str__(self):
+        self.visualize_adjacency_list(self.adjacency_list)
+        return "Visualized adjacency list in matlab"
+    
+    def create_graph_from_image(self):
         for i in range(0, len(self.boxes)): # for all boxes
             if self.boxes[i]["class_id"] == 1:
                 continue
@@ -59,13 +84,55 @@ class node_graph:
                             # note is_pixel_in_boxes_kdtree expects (x, y)
                             isContained, idx = self.is_pixel_in_boxes_kdtree(new_col, new_row)
                             if isContained and idx != i and self.boxes[idx]["class_id"] != 1: # is contained, id isnt itself, id isnt text
-                                self.adjacency_list[i].add(idx)
+                                distance = self.get_direction_and_distance(box, self.boxes[idx])
+                                self.adjacency_list[i].add((idx, distance))
                                 continue
                             stack.append((new_row, new_col))
 
-    def __str__(self):
-        self.visualize_adjacency_list(self.adjacency_list)
-        return "Visualized adjacency list in matlab"
+    def get_direction_and_distance(self, box1, box2):
+        # Calculate centers of both boxes.
+        c1 = ((box1["x1"] + box1["x2"]) / 2, (box1["y1"] + box1["y2"]) / 2)
+        c2 = ((box2["x1"] + box2["x2"]) / 2, (box2["y1"] + box2["y2"]) / 2)
+        
+        # Compute differences between centers.
+        dx_center = c2[0] - c1[0]
+        dy_center = c2[1] - c1[1]
+
+        scalar = 1  # SCALE OUTPUT 
+        
+        # Compute widths and heights of the boxes.
+        box1_width = box1["x2"] - box1["x1"]
+        box2_width = box2["x2"] - box2["x1"]
+        box1_height = box1["y2"] - box1["y1"]
+        box2_height = box2["y2"] - box2["y1"]
+        
+        # Decide dominant axis.
+        if abs(dx_center) >= abs(dy_center):
+            # Horizontal is dominant.
+            if dx_center >= 0:
+                # box2 is mostly to the right of box1.
+                # Compute horizontal gap: distance from box1's right edge to box2's left edge.
+                gap = box2["x1"] - box1["x2"] if box1["x2"] < box2["x1"] else 0
+                # Add half-widths of both boxes to shift from edge-to-edge to center-to-center.
+                total_distance = (box1_width / 2) + gap + (box2_width / 2)
+                return (scalar * total_distance, 0)
+            else:
+                # box2 is mostly to the left of box1.
+                gap = box1["x1"] - box2["x2"] if box2["x2"] < box1["x1"] else 0
+                total_distance = (box2_width / 2) + gap + (box1_width / 2)
+                return (scalar * -total_distance, 0)
+        else:
+            # Vertical is dominant.
+            if dy_center >= 0:
+                # box2 is mostly below box1.
+                gap = box2["y1"] - box1["y2"] if box1["y2"] < box2["y1"] else 0
+                total_distance = (box1_height / 2) + gap + (box2_height / 2)
+                return (0, scalar * total_distance)
+            else:
+                # box2 is mostly above box1.
+                gap = box1["y1"] - box2["y2"] if box2["y2"] < box1["y1"] else 0
+                total_distance = (box2_height / 2) + gap + (box1_height / 2)
+                return (0, scalar * -total_distance)
         
     def create_kdtree_from_boxes(self, boxes):
         """
@@ -97,29 +164,58 @@ class node_graph:
     def visualize_adjacency_list(self, adj_list):
         """
         Visualizes the adjacency list as a graph using networkx.
-
-        :param adj_list: Dictionary where keys are node indices and values are sets of connected nodes.
+        Each edge stores a distance vector (dx, dy). For example:
+            (50, 0) means the neighbor is 50 pixels to the right.
+            (0, 30) means the neighbor is 30 pixels above.
+        
+        This version ensures that every node is assigned a position,
+        even in a disconnected graph.
         """
-        G = nx.Graph()  # Create an empty graph
-
-        # Add nodes and edges from the adjacency list
+        positions = {}
+        
+        # For every node in the adjacency list, if it hasn't been assigned a position,
+        # perform a BFS starting from that node.
+        for start in adj_list.keys():
+            if start in positions:
+                continue
+            positions[start] = (0, 0)  # assign a default position for the new component
+            queue = [start]
+            while queue:
+                node = queue.pop(0)
+                current_pos = positions[node]
+                for neighbor in adj_list[node]:
+                    neighbor_id, distance = neighbor  # distance is a tuple (dx, dy)
+                    if neighbor_id not in positions:
+                        # Note: subtracting distance[1] from current y to flip the y-axis if needed.
+                        new_pos = (current_pos[0] + distance[0], current_pos[1] - distance[1])
+                        positions[neighbor_id] = new_pos
+                        queue.append(neighbor_id)
+        
+        # Build the graph.
+        G = nx.Graph()
+        for node in adj_list.keys():
+            G.add_node(node)
         for node, neighbors in adj_list.items():
             for neighbor in neighbors:
-                G.add_edge(node, neighbor)  # Add connection between nodes
-
-        # Draw the graph
+                neighbor_id, distance = neighbor
+                G.add_edge(node, neighbor_id, weight=distance)
+        
+        # Draw the graph using our computed positions.
         plt.figure(figsize=(8, 6))
-        pos = nx.spring_layout(G, seed=42)  # Spring layout for better visualization
-        nx.draw(G, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=700, font_size=10)
-
-        plt.title("Adjacency List Visualization")
+        nx.draw_networkx_nodes(G, positions, node_color='lightblue', node_size=700)
+        nx.draw_networkx_edges(G, positions, edge_color='black')
+        nx.draw_networkx_labels(G, positions, font_size=10)
+        
+        plt.title("Adjacency List With Positions")
+        plt.axis('off')
         plt.show()
 
 if __name__ == "__main__":
     import process_image as p
     
     # Load image
-    image = cv2.imread('image.png')
+    image = cv2.imread('image3.png')
+    image = p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")
         exit(1)
@@ -149,7 +245,7 @@ if __name__ == "__main__":
         center_y = int((y1 + y2) / 2)
 
         # Draw index number on the RGB image (red text)
-        cv2.putText(rgb_image, str(i), (center_x, center_y), 
+        cv2.putText(rgb_image, str(classes[box["class_id"]]), (center_x, center_y), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
     # Display both OpenCV image and Matplotlib graph visualization

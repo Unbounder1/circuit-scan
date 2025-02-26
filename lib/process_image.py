@@ -41,7 +41,7 @@ def process_image(image):
     return bounding_boxes
 
 
-def resize_image(image, max_size=640):
+def resize_image(image, max_size=1000):
     """
     Resize an image while maintaining aspect ratio such that the longest side is max_size.
     
