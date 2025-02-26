@@ -147,6 +147,8 @@ def graph_to_ltspice(adj_list, boxes):
             box = boxes[node]
             class_name = classes[box["class_id"]]
             # Skip non-component nodes.
+            if class_name not in ["text", "junction"] and class_name in ["GND", "VSS"]:
+                ltspice_lines.append(f"FLAG {x} {y} 0")
             if class_name not in ["text", "junction"]:
                 symbol = class_to_symbol.get(class_name, "Unknown")
                 rotation = orientations.get(node, "R0")

@@ -245,7 +245,7 @@ if __name__ == "__main__":
         center_y = int((y1 + y2) / 2)
 
         # Draw index number on the RGB image (red text)
-        cv2.putText(rgb_image, str(classes[box["class_id"]]), (center_x, center_y), 
+        cv2.putText(rgb_image, str(i) + ": " + str(classes[box["class_id"]]), (center_x, center_y), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
     # Display both OpenCV image and Matplotlib graph visualization
