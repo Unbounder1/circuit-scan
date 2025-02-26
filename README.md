@@ -6,23 +6,23 @@ Converts images/drawings to LTSpice diagrams
 
 First take in input image:
 
-![Example Input](relative%20public/documentations1.png?raw=true "Input Image")
+![Example Input](./public/documentations1.png?raw=true "Input Image")
 
 Apply machine learning OBB model[1] to detect bounding boxes of components, text, and junctions:
 
-![ML output](relative%20public/documentations2.png?raw=true "ML Output")
+![ML output](./public/documentations2.png?raw=true "ML Output")
 
 Create bounding boxes and fill in with black bounding boxes to ensure circuit continuity for next step, and binarize image:
 
-![Bounding Box](relative%20public/documentations3.png?raw=true "Bounding Box")
+![Bounding Box](./public/documentations3.png?raw=true "Bounding Box")
 
 Using a pixel based DFS with KDTree for determining if pixel in (any) bounding, discover neighbors to each node and construct a x,y weighted adjacency list representing each of the nodes:
 
-![Adjacency List](relative%20public/documentations4.png?raw=true "Adjacency List")
+![Adjacency List](./public/documentations4.png?raw=true "Adjacency List")
 
 Finally, using a table of symbol mapping and component offsets (components like resistors are positioned based on corners not center, unlike other components)'
 
-![LTspice](relative%20public/documentations5.png?raw=true "LTspice")
+![LTspice](./public/documentations5.png?raw=true "LTspice")
 
 ## File Structure 
 ```
