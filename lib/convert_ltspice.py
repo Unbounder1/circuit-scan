@@ -119,7 +119,7 @@ def graph_to_ltspice(adj_list, boxes):
     # Get node positions and orientations via BFS.
     positions, orientations = compute_positions_bfs(adj_list)
     # Snap node positions to a grid (this makes them exact multiples of grid_size).
-    positions = {node: snap_to_grid(pos, grid_size=16) for node, pos in positions.items()}
+    positions = {node: snap_to_grid(pos, grid_size=32) for node, pos in positions.items()}
     
     ltspice_lines = []
     ltspice_lines.append("Version 4")
@@ -176,7 +176,7 @@ if __name__ == "__main__":
     import cv2
 
     # Load image
-    image = cv2.imread('image3.png')
+    image = cv2.imread('image4.png')
     image = p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")
@@ -192,8 +192,10 @@ if __name__ == "__main__":
             w, h = max(1, x2 - x1), max(1, y2 - y1)
             image[y1:y1 + h, x1:x1 + w] = (0, 0, 0)
 
+    scale = p.normalize_image(bounding_boxes)
+
     # Create graph from processed image
-    graph = n.node_graph(bounding_boxes, image)
+    graph = n.node_graph(bounding_boxes, image, scalar=scale)
 
     # Convert the graph's binary image to RGB for labeling
     rgb_image = cv2.cvtColor(graph.image, cv2.COLOR_GRAY2BGR)

@@ -28,15 +28,17 @@ class node_graph:
     image: Processed binary image in cv2 format
     kdtree: Created kdtree from input boxes
     adjacency_list: List of nodes with array of 
+    scalar: multiplication factor
 
     DFS METHOD:
         For each node, find all bounding boxes connected directly 
         Add to adjacency list (dictionary) keys -> node; value -> set of connections
     '''
-    def __init__(self, bounding_boxes, image):
+    def __init__(self, bounding_boxes, image, scalar=1):
+        self.scalar = scalar
         self.kdtree, self.boxes = self.create_kdtree_from_boxes(bounding_boxes)
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        _, self.image = cv2.threshold(gray_image, 200, 255, cv2.THRESH_BINARY)  # Ensure binary image --SET TO 250 FOR NO CUTOFF-- (make variable later)
+        _, self.image = cv2.threshold(gray_image, 127, 255, cv2.THRESH_BINARY)  # Ensure binary image --SET TO 250 FOR NO CUTOFF-- (make variable later)
 
         # Set up using DFS: ------
         self.adjacency_list = {}
@@ -98,7 +100,7 @@ class node_graph:
         dx_center = c2[0] - c1[0]
         dy_center = c2[1] - c1[1]
 
-        scalar = 1  # SCALE OUTPUT 
+        scalar = self.scalar  # SCALE OUTPUT 
         
         # Compute widths and heights of the boxes.
         box1_width = box1["x2"] - box1["x1"]
@@ -214,14 +216,14 @@ if __name__ == "__main__":
     import process_image as p
     
     # Load image
-    image = cv2.imread('image3.png')
+    image = cv2.imread('image4.png')
     image = p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")
         exit(1)
 
     # Process image to get bounding boxes
-    bounding_boxes = p.process_image(image)
+    bounding_boxes = p.process_image(image, threshold=0.6)
 
     # Remove objects other than junctions (class_id = 1)
     for box in bounding_boxes:
@@ -230,8 +232,11 @@ if __name__ == "__main__":
             w, h = max(1, x2 - x1), max(1, y2 - y1)
             image[y1:y1 + h, x1:x1 + w] = (0, 0, 0)  # Set to black
 
-    # Create Graph from processed image
-    graph = node_graph(bounding_boxes, image)
+    scale = p.normalize_image(bounding_boxes)
+    print(bounding_boxes[31])
+
+    # Create graph from processed image
+    graph = node_graph(bounding_boxes, image, scalar=scale)
 
     # Convert the graph's binary image to RGB for colored text
     rgb_image = cv2.cvtColor(graph.image, cv2.COLOR_GRAY2BGR)

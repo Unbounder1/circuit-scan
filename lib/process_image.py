@@ -4,7 +4,7 @@ import json
 
 model = YOLO("/Users/rdong/Documents/Github/circuit-scan/models/Train_25.pt")
 
-def process_image(image): 
+def process_image(image, threshold=0.5): 
     """
     Processes images using default specified yolo model
     Params:
@@ -18,6 +18,8 @@ def process_image(image):
         boxes = result.boxes  # Bounding boxes object
 
         for box in boxes:
+            if (box.conf[0].item() < threshold):
+                continue
             x1, y1, x2, y2 = box.xyxy[0].tolist()  # Coordinates (top-left and bottom-right)
             confidence = box.conf[0].item()  # Confidence score
             class_id = int(box.cls[0].item())  # Class ID
@@ -62,7 +64,19 @@ def resize_image(image, max_size=1000):
     
     return resized
 
-
+def normalize_image(bounding_boxes, standard_x=63, standard_y=30):
+    for box in bounding_boxes:
+        if box["class_id"] == 10: # If its a resistor
+            x1 = box["x1"]
+            x2 = box["x2"]
+            y1 = box["y1"]
+            y2 = box["y2"]
+            scalarx = standard_x/(x2-x1)
+            scalary = standard_y/(y2-y1)
+            scale = (scalarx+scalary)/2 # Return average of ratio of difference between resistor bounding & ideal
+            return scale
+    print("No resistor to normalize image")
+    return -1
 if __name__ == "__main__":
     image = resize_image(cv2.imread('image.png'))# resized image
     bounding_boxes = process_image(image)
