@@ -20,22 +20,55 @@ classes = [
         "switch", "relay", "socket", "fuse",
         "speaker", "motor", "lamp", "microphone", "antenna", "crystal",
         "mechanical", "magnetic", "optical", "block", "explanatory", "unknown"
-    ]
+]
 
-def create_kdtree_from_boxes(boxes):
-        """
-        Create a KDTree from bounding boxes for fast pixel lookup.
-        :param boxes: List or array of (x1, y1, x2, y2) bounding boxes.
-        :return: KDTree object and list of bounding boxes.
-        """
-        box_centers = []
-        for box in boxes:
+label_match = {
+    # "component name": "regex of label"
+    "resistor" : "R*" 
+}
 
+value_match = {
+    # "component name" : "regex of value"
+    "resistor" : "{1-9}*" 
+}
+
+def create_kdtree_from_boxes(boxes, class_filter):
+    """
+    Create a KDTree from bounding boxes for fast pixel lookup.
+    :param boxes: List or array of (x1, y1, x2, y2) bounding boxes.
+    :return: KDTree object and list of bounding boxes.
+    """
+    box_centers = []
+    for box in boxes:
+        if box["class_id"] != class_filter:
             box_centers.append([(box["x1"] + box["x2"]) / 2,  # Get center of first box
-              (box["y1"] + box["y2"]) / 2])
-        return KDTree(box_centers), boxes
+            (box["y1"] + box["y2"]) / 2])
+    return KDTree(box_centers), boxes
 
-def find_nearest_text
+
+def find_nearest_text(box, kdtree, search_size=3):  # number of potential components values to test
+    """
+    Create a KDTree from bounding boxes for fast pixel lookup.
+    :param box: { x1, y1, x2, y2, confidence, class_ix } dict (singular)
+    :param kdtree: KDTree of text boxes
+    :param search_size: Number of nearby bounding text boxes to test for values
+    :return: output_label, output_value 
+    """
+    x = (box["x1"] + box["x2"]) / 2
+    y = (box["y1"] + box["y2"]) / 2
+    potential_labels = kdtree.query((x, y), k=search_size)
+    output_label = ""
+    output_value = ""
+
+    for label in potential_labels:
+        # if label matches regex of value_match
+
+        # else if label matches regex of label_match
+        continue
+
+    return output_label, output_value
+
+     
 
 if __name__ == "__main__":
     import process_image as p
