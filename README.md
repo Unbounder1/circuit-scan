@@ -2,6 +2,9 @@
 
 Converts images/drawings to LTSpice diagrams 
 
+## TODO
+- Add contrast slider
+
 ## Methodology
 
 First take in input image:

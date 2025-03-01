@@ -38,7 +38,7 @@ class node_graph:
         self.scalar = scalar
         self.kdtree, self.boxes = self.create_kdtree_from_boxes(bounding_boxes)
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        _, self.image = cv2.threshold(gray_image, 127, 255, cv2.THRESH_BINARY)  # Ensure binary image --SET TO 250 FOR NO CUTOFF-- (make variable later)
+        _, self.image = cv2.threshold(gray_image, 160, 255, cv2.THRESH_BINARY)  # Ensure binary image --SET TO 250 FOR NO CUTOFF-- (make variable later)
 
         # Set up using DFS: ------
         self.adjacency_list = {}
@@ -149,7 +149,7 @@ class node_graph:
               (box["y1"] + box["y2"]) / 2])
         return KDTree(box_centers), boxes
 
-    def is_pixel_in_boxes_kdtree(self, x, y, threshold=50):
+    def is_pixel_in_boxes_kdtree(self, x, y, threshold=1): # threshold = amt of error for bounding boxes in px
         """
         Check if a pixel (x, y) is within a bounding box using KDTree for fast lookup.
         
@@ -161,7 +161,7 @@ class node_graph:
         """
         _, idx = self.kdtree.query((x, y), k=1)  # Find nearest bounding box center
         x1, y1, x2, y2 = self.boxes[idx]["x1"], self.boxes[idx]["y1"], self.boxes[idx]["x2"], self.boxes[idx]["y2"]  # Retrieve closest box
-        return (x1 - 1 <= x <= x2 + 1) and (y1 - 1 <= y <= y2 + 1), idx # Final check, bounding +1 pixel
+        return (x1 - 1 <= x <= x2 + threshold) and (y1 - 1 <= y <= y2 + threshold), idx # Final check, bounding +1 pixel
     
     def visualize_adjacency_list(self, adj_list):
         """
@@ -233,7 +233,6 @@ if __name__ == "__main__":
             image[y1:y1 + h, x1:x1 + w] = (0, 0, 0)  # Set to black
 
     scale = p.normalize_image(bounding_boxes)
-    print(bounding_boxes[31])
 
     # Create graph from processed image
     graph = node_graph(bounding_boxes, image, scalar=scale)

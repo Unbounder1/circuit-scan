@@ -1,22 +1,22 @@
 def get_rotation(dx, dy):
     """
     Returns the LTspice rotation string based on the offset direction.
-    (dx > 0, dy = 0)  => R90   (facing right)
-    (dx < 0, dy = 0)  => R270 (facing left)
-    (dx = 0, dy > 0)  => R0  (facing up)
-    (dx = 0, dy < 0)  => R180 (facing down)
+    (dy = 0)  => R0   (facing left/right)
+    (dx = 0)  => R90  (facing up/down)
     """
-    if dx > 0:
+    if dx == 0:
+        return "R0"
+    elif dy == 0:
         return "R90"
-    elif dx < 0:
-        return "R270"
-    elif dy > 0:
-        return "R0"
-    elif dy < 0:
-        return "R180"
     else:
-        return "R0"
-
+        return "R1"
+    
+def get_rotation_precise(image, bounding_box):
+    """
+    Returns the LTspice rotation string based OBB object detection ---- implement later
+    """
+    return "R0"
+    
 def compute_positions_bfs(adj_list):
     """
     Computes absolute positions for each node using BFS.
@@ -33,7 +33,6 @@ def compute_positions_bfs(adj_list):
     for node in adj_list.keys():
         if node not in visited:
             positions[node] = (1000, 1000)
-            orientations[node] = "R0"
             queue = [node]
             visited.add(node)
 
@@ -47,7 +46,7 @@ def compute_positions_bfs(adj_list):
                     new_pos = (int(round(new_x)), int(round(new_y)))
                     if neighbor_idx not in visited:
                         positions[neighbor_idx] = new_pos
-                        # Corrected: pass (dx, dy) to get_rotation
+
                         orientations[neighbor_idx] = get_rotation(dx, dy)
                         visited.add(neighbor_idx)
                         queue.append(neighbor_idx)
@@ -67,7 +66,7 @@ def snap_to_grid(pos, grid_size=10):
     x, y = pos
     return (round(x / grid_size) * grid_size, round(y / grid_size) * grid_size)
 
-def graph_to_ltspice(adj_list, boxes):
+def graph_to_ltspice(adj_list, boxes, image):
     """
     Converts a graph to an LTspice .asc file string by processing one node at a time.
     
@@ -108,18 +107,21 @@ def graph_to_ltspice(adj_list, boxes):
     }
     # Define pin offsets if the LTspice symbol's electrical pin is not at (0,0).
     symbol_pin_offsets = {
-        "Res": {"R0": (16, 16), "R90": (16, 16), "R180": (-16, 16), "R270": (16, 16)},
+        "Res": {"R0": (16, 16), "R90": (-48, 16)},
         "voltage": {"R0": (0, 0), "R90": (0, 0), "R180": (0, 0), "R270": (0, 0)},
-        "FLAG": {"R0": (0, 0), "R90": (0, 0), "R180": (0, 0), "R270": (0, 0)},
-        "Cap": {"R0": (16, 32), "R90": (0, -16), "R180": (-16, 0), "R270": (0, 16)},
-        "Ind": {"R0": (16, 16), "R90": (16, -16), "R180": (-16, -16), "R270": (-16, 16)},
+        "Cap": {"R0": (16, 32), "R90": (16, 16)},
+        "Ind": {"R0": (16, 16), "R90": (-48, 16)},
         # ... add more components as needed ...
+    }
+    rotation_components = {
+        "voltage.dc", "voltage.ac", "voltage.battery",
+        "diode", "diode.light_emitting", "diode.thyrector", "diode.zener",
     }
     
     # Get node positions and orientations via BFS.
     positions, orientations = compute_positions_bfs(adj_list)
     # Snap node positions to a grid (this makes them exact multiples of grid_size).
-    positions = {node: snap_to_grid(pos, grid_size=32) for node, pos in positions.items()}
+    positions = {node: snap_to_grid(pos, grid_size=16) for node, pos in positions.items()}
     
     ltspice_lines = []
     ltspice_lines.append("Version 4")
@@ -151,12 +153,20 @@ def graph_to_ltspice(adj_list, boxes):
                 ltspice_lines.append(f"FLAG {x} {y} 0")
             if class_name not in ["text", "junction"]:
                 symbol = class_to_symbol.get(class_name, "Unknown")
-                rotation = orientations.get(node, "R0")
+
+                # Get rotation
+                if (class_name in rotation_components):
+                    rotation = get_rotation_precise(image, box)
+                else:
+                    rotation = orientations.get(node, "R0")
+
                 pin_offset = symbol_pin_offsets.get(symbol, {}).get(rotation, (0, 0))
+
                 # Adjust the position by subtracting the pin offset.
                 adjusted_x = x - pin_offset[0]
                 adjusted_y = y - pin_offset[1]
                 ltspice_lines.append(f"SYMBOL {symbol} {adjusted_x} {adjusted_y} {rotation}")
+
                 # Set the instance name based on the symbol type.
                 if symbol == "Res":
                     inst_name = f"R{node}"
@@ -176,7 +186,7 @@ if __name__ == "__main__":
     import cv2
 
     # Load image
-    image = cv2.imread('image4.png')
+    image = cv2.imread('image2.png')
     image = p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")
@@ -185,17 +195,20 @@ if __name__ == "__main__":
     # Process image to get bounding boxes
     bounding_boxes = p.process_image(image)
 
+    bfs_image = image
+
     # Remove non-junction objects (example: class_id=1 is "junction")
     for box in bounding_boxes:
         if box["class_id"] != 1:
             x1, y1, x2, y2 = int(box["x1"]), int(box["y1"]), int(box["x2"]), int(box["y2"])
             w, h = max(1, x2 - x1), max(1, y2 - y1)
-            image[y1:y1 + h, x1:x1 + w] = (0, 0, 0)
+            bfs_image[y1:y1 + h, x1:x1 + w] = (0, 0, 0)
 
     scale = p.normalize_image(bounding_boxes)
 
     # Create graph from processed image
-    graph = n.node_graph(bounding_boxes, image, scalar=scale)
+    graph = n.node_graph(bounding_boxes, bfs_image, scalar=scale)
+    print(graph)
 
     # Convert the graph's binary image to RGB for labeling
     rgb_image = cv2.cvtColor(graph.image, cv2.COLOR_GRAY2BGR)
@@ -207,7 +220,7 @@ if __name__ == "__main__":
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
     
     # Generate LTspice schematic text
-    ltspice_file_str = graph_to_ltspice(graph.adjacency_list, graph.boxes)
+    ltspice_file_str = graph_to_ltspice(graph.adjacency_list, graph.boxes, image)
     with open("test.asc", "w") as f:
         f.write(ltspice_file_str)
     print(ltspice_file_str)

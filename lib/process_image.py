@@ -64,7 +64,7 @@ def resize_image(image, max_size=1000):
     
     return resized
 
-def normalize_image(bounding_boxes, standard_x=63, standard_y=30):
+def normalize_image(bounding_boxes, standard_x=80, standard_y=40):
     for box in bounding_boxes:
         if box["class_id"] == 10: # If its a resistor
             x1 = box["x1"]
