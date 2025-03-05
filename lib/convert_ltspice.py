@@ -1,3 +1,4 @@
+import process_image as p
 def get_rotation(dx, dy):
     """
     Returns the LTspice rotation string based on the offset direction.
@@ -10,12 +11,6 @@ def get_rotation(dx, dy):
         return "R90"
     else:
         return "R1"
-    
-def get_rotation_precise(image, bounding_box):
-    """
-    Returns the LTspice rotation string based OBB object detection ---- implement later
-    """
-    return "R0"
     
 def compute_positions_bfs(adj_list):
     """
@@ -62,7 +57,7 @@ def compute_positions_bfs(adj_list):
 
     return positions, orientations
 
-def snap_to_grid(pos, grid_size=10):
+def snap_to_grid(pos, grid_size=16):
     x, y = pos
     return (round(x / grid_size) * grid_size, round(y / grid_size) * grid_size)
 
@@ -121,7 +116,7 @@ def graph_to_ltspice(adj_list, boxes, image):
     # Get node positions and orientations via BFS.
     positions, orientations = compute_positions_bfs(adj_list)
     # Snap node positions to a grid (this makes them exact multiples of grid_size).
-    positions = {node: snap_to_grid(pos, grid_size=16) for node, pos in positions.items()}
+    positions = {node: snap_to_grid(pos, grid_size=1) for node, pos in positions.items()}
     
     ltspice_lines = []
     ltspice_lines.append("Version 4")
@@ -156,7 +151,7 @@ def graph_to_ltspice(adj_list, boxes, image):
 
                 # Get rotation
                 if (class_name in rotation_components):
-                    rotation = get_rotation_precise(image, box)
+                    rotation = p.get_rotation_precise(image, box)
                 else:
                     rotation = orientations.get(node, "R0")
 
@@ -186,14 +181,14 @@ if __name__ == "__main__":
     import cv2
 
     # Load image
-    image = cv2.imread('image2.png')
+    image = cv2.imread('image4.png')
     image = p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")
         exit(1)
 
     # Process image to get bounding boxes
-    bounding_boxes = p.process_image(image)
+    bounding_boxes = p.process_image(image, threshold=0.6)
 
     bfs_image = image
 
