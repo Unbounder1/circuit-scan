@@ -211,11 +211,11 @@ if __name__ == "__main__":
     graph = n.node_graph(bounding_boxes, bfs_image, scalar=scale)
     # print(graph)
 
-    text_kdtree, text_boxes = a.create_kdtree_from_boxes(bounding_boxes)
+    text_kdtree, text_boxes = a.create_kdtree_from_boxes(bounding_boxes, graph.image)
 
     for box in bounding_boxes:
-        if box["class_id"] != 2:
-            output_label, output_value = a.find_nearest_text(box, text_kdtree, text_boxes, graph.image)
+        if box["class_id"] != 2 and box["class_id"] != 1:
+            output_label, output_value = a.find_nearest_text(box, text_kdtree, text_boxes)
             box["label"] = output_label
             box["value"] = output_value
 

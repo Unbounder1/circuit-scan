@@ -32,18 +32,22 @@ value_match = {
     "resistor" : "{1-9}*" 
 }
 
-def process_values(image, text_box):
-    x1, x2, y1, y2 =  int(text_box["x1"]), int(text_box["x2"]), int(text_box["y1"]), int(text_box["y2"])
-    cropped_image = image[y1-5:y2+5, x1-5:x2+5]
+def fix_misread_numbers(value):
+    """
+    Corrects common OCR misreadings:
+    - Replaces 'O' (uppercase letter 'O') with '0' if it appears before a decimal.
+    - Ensures correct format for numerical values.
 
-    print( pytesseract.image_to_string(cropped_image))
+    :param value: str, raw extracted text
+    :return: str, cleaned value
+    """
+    # Fix cases where "O." should be "0."
+    value = re.sub(r"\bO\.", "0.", value)  
 
-    return pytesseract.image_to_string(cropped_image)
-
-    
+    return value
 
 
-def create_kdtree_from_boxes(boxes):
+def create_kdtree_from_boxes(boxes, image):
     """
     Create a KDTree from bounding boxes for fast lookup.
     
@@ -56,9 +60,14 @@ def create_kdtree_from_boxes(boxes):
 
     for box in boxes:
         if box["class_id"] == 1:  # Filter for text ONLY
+            x1, x2, y1, y2 =  int(box["x1"]), int(box["x2"]), int(box["y1"]), int(box["y2"])
             center_x = (box["x1"] + box["x2"]) / 2
             center_y = (box["y1"] + box["y2"]) / 2
+
+            cropped_image = image[y1-5:y2+5, x1-5:x2+5]
+
             box_centers.append((center_x, center_y))
+            box["text"] = fix_misread_numbers(pytesseract.image_to_string(cropped_image))
             filtered_boxes.append(box) 
 
     if not box_centers:
@@ -67,7 +76,7 @@ def create_kdtree_from_boxes(boxes):
     return KDTree(np.array(box_centers)), filtered_boxes
 
 
-def find_nearest_text(box, kdtree, text_boxes, image, search_size=3, search_radius=300):
+def find_nearest_text(box, kdtree, text_boxes, search_size=3, search_radius=300):
     """
     Find the nearest text labels using KDTree lookup.
 
@@ -86,7 +95,8 @@ def find_nearest_text(box, kdtree, text_boxes, image, search_size=3, search_radi
     # Get nearest text box indices
     distances, indices = kdtree.query((x, y), k=min(search_size, len(text_boxes)))
 
-    print(distances)
+    print(classes[box["class_id"]])
+    #print(f"Nearby Indices: {text_boxes[indices[0]]["text"]},  {text_boxes[indices[1]]["text"]},  {text_boxes[indices[2]]["text"]}")
 
     # Ensure indices is iterable (if only one result, convert to list)
     if isinstance(indices, np.int64):
@@ -98,16 +108,20 @@ def find_nearest_text(box, kdtree, text_boxes, image, search_size=3, search_radi
     for idx in indices:
         if (distances[i] > search_radius):
             break
-        text_content = process_values(image, text_boxes[idx])
+        text_content = text_boxes[idx]["text"]
 
         # Define regex patterns for labels and values
         value_match = re.compile(r"^\d+(\.\d+)?\s?[a-zA-Z.]+$")
         label_match = re.compile(r"^[a-zA-Z]+[0-9]*$")
 
-        if value_match.match(text_content):
+        # Greedy based algorithm 
+        if value_match.match(text_content) and output_value == "":
             output_value = text_content
-        if label_match.match(text_content):
+            print(output_value)
+        if label_match.match(text_content) and output_label == "":
             output_label = text_content
+            print(output_value)
+
         i += 1
 
     return output_label, output_value
