@@ -1,7 +1,7 @@
 import cv2
 from matplotlib import pyplot as plt
 
-img = cv2.imread("image.png")
+img = cv2.imread("image5.png")
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 kernel_size = 7

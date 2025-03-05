@@ -163,7 +163,9 @@ def graph_to_ltspice(adj_list, boxes, image):
                 ltspice_lines.append(f"SYMBOL {symbol} {adjusted_x} {adjusted_y} {rotation}")
 
                 # Set the instance name based on the symbol type.
-                if symbol == "Res":
+                if box["label"] != "":
+                    inst_name = box["label"]
+                elif symbol == "Res":
                     inst_name = f"R{node}"
                 elif symbol == "voltage":
                     inst_name = f"V{node}"
@@ -172,6 +174,9 @@ def graph_to_ltspice(adj_list, boxes, image):
                 else:
                     inst_name = f"{symbol}{node}"
                 ltspice_lines.append(f"SYMATTR InstName {inst_name}")
+
+                if box["value"] != "":
+                    ltspice_lines.append(f"SYMATTR Value {box["value"]}")
     
     return "\n".join(ltspice_lines)
 
@@ -179,9 +184,10 @@ if __name__ == "__main__":
     import process_image as p
     import node_connections as n
     import cv2
+    import assign_values as a
 
     # Load image
-    image = cv2.imread('image4.png')
+    image = cv2.imread('image3.png')
     image = p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")
@@ -203,19 +209,20 @@ if __name__ == "__main__":
 
     # Create graph from processed image
     graph = n.node_graph(bounding_boxes, bfs_image, scalar=scale)
-    print(graph)
+    # print(graph)
 
-    # Convert the graph's binary image to RGB for labeling
-    rgb_image = cv2.cvtColor(graph.image, cv2.COLOR_GRAY2BGR)
-    for i, box in enumerate(bounding_boxes):
-        x1, y1, x2, y2 = int(box["x1"]), int(box["y1"]), int(box["x2"]), int(box["y2"])
-        center_x = int((x1 + x2) / 2)
-        center_y = int((y1 + y2) / 2)
-        cv2.putText(rgb_image, str(i), (center_x, center_y),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-    
+    text_kdtree, text_boxes = a.create_kdtree_from_boxes(bounding_boxes)
+
+    for box in bounding_boxes:
+        if box["class_id"] != 2:
+            output_label, output_value = a.find_nearest_text(box, text_kdtree, text_boxes, graph.image)
+            box["label"] = output_label
+            box["value"] = output_value
+
     # Generate LTspice schematic text
-    ltspice_file_str = graph_to_ltspice(graph.adjacency_list, graph.boxes, image)
+    ltspice_file_str = graph_to_ltspice(graph.adjacency_list, bounding_boxes, image)
+
+
     with open("test.asc", "w") as f:
         f.write(ltspice_file_str)
-    print(ltspice_file_str)
+    # print(ltspice_file_str)

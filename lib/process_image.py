@@ -3,7 +3,7 @@ import cv2
 import json
 
 model = YOLO("/Users/rdong/Documents/Github/circuit-scan/models/Train_25.pt")
-model_obb = YOLO("/Users/rdong/Documents/Github/circuit-scan/models/obb/train5_obb_e900.pt")
+model_obb = YOLO("/Users/rdong/Documents/Github/circuit-scan/models/obb/train5_obb_e840.pt")
 
 def process_image(image, threshold=0.5): 
     """
@@ -39,7 +39,7 @@ def process_image(image, threshold=0.5):
         json.dump(bounding_boxes, f, indent=4)
 
     # Print bounding boxes 
-    print(json.dumps(bounding_boxes, indent=4))
+    # print(json.dumps(bounding_boxes, indent=
 
     return bounding_boxes
 
@@ -48,13 +48,17 @@ def get_rotation_precise(image, box):
     Returns the LTspice rotation string based OBB object detection ---- implement later
     :param:
     """
-    x1, x2, y1, y2 =  int(box["x1"]), int(box["x2"]), int(box["y1"]), int(box["y2"]) # Example coordinates
+    x1, x2, y1, y2 =  int(box["x1"]), int(box["x2"]), int(box["y1"]), int(box["y2"])
+
+    print(x1, x2, y1, y2)
 
     # Crop the image using slicing
     cropped_image = image[y1:y2, x1:x2]
 
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    results = model_obb(image)
+
+    cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
+
+    results = model_obb(cropped_image)
 
     if results[0].boxes == None:
         return "R0"  
