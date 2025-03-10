@@ -1,0 +1,9 @@
+ultralytics
+cv2
+json
+numpy
+scipy.spatial
+re
+pytesseract
+networkx
+matplotlib

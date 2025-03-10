@@ -41,7 +41,7 @@ def fix_misread_numbers(value):
     :param value: str, raw extracted text
     :return: str, cleaned value
     """
-    # Fix cases where "O." should be "0."
+
     value = re.sub(r"\bO\.", "0.", value)  
 
     return value
@@ -76,7 +76,7 @@ def create_kdtree_from_boxes(boxes, image):
     return KDTree(np.array(box_centers)), filtered_boxes
 
 
-def find_nearest_text(box, kdtree, text_boxes, search_size=3, search_radius=300):
+def find_nearest_text(box, kdtree, text_boxes, search_size=2, search_radius=300):
     """
     Find the nearest text labels using KDTree lookup.
 
@@ -125,6 +125,13 @@ def find_nearest_text(box, kdtree, text_boxes, search_size=3, search_radius=300)
         i += 1
 
     return output_label, output_value
+
+def assign_values(bounding_boxes, text_kdtree, text_boxes):
+     for box in bounding_boxes:
+        if box["class_id"] != 2 and box["class_id"] != 1:
+            output_label, output_value = find_nearest_text(box, text_kdtree, text_boxes)
+            box["label"] = output_label
+            box["value"] = output_value
 
 if __name__ == "__main__":
     import process_image as p

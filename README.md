@@ -5,6 +5,68 @@ Converts images/drawings to LTSpice diagrams
 ## TODO
 - Add contrast slider
 
+## Function Usage
+
+### Defaults
+
+```c++
+process_image_threshold=0.5 //object detection accuracy threshold
+resize_image_max=1000 // resize image size
+normalize_x=80 // default goal resistor size-x
+normalize_y=80 // default goal resistor size-y
+binary_threshold_min=160 // min threshold when converting to binary
+binary_threshold_max=255 // maximum threshold to convert to white
+kdtree_bounding_threshold=1 // default threshold for the bounding boxes when calculating the kdtree
+grid_size=128 // default ltspice snapping grid size
+text_search_size=2 // number of text options to search per component
+text_search_radius=300 // the maximum radius of search for text in components
+```
+
+### Pseudocode Usage
+
+```python
+    import process_image as p
+    import node_connections as n
+    import assign_values as a
+    import conver_ltspice as c
+    import cv2
+
+    # Load image
+    image = cv2.imread('image')
+
+    # process image
+    image = p.resize_image(image) # making image resize to 1000 pixels
+
+    # Get bounding boxes from YOLO model
+    bounding_boxes = p.process_image(image, threshold=0.5) 
+
+    # Apply bounding box to new image
+    bounded_image = p.process_bounding_box(bounding_zboxes, iamge)
+
+    # Get image normalization scale (based on component size)
+    scale = p.normalize_image(bounding_boxes)
+
+    # Create adjacency list graph
+    graph = n.node_graph(bounding_boxes, bounded_image, scalar=scale)
+
+    # Debug Adjacency list creation && image
+    cv2.imshow('1-Pixel Contours with Indexes', graph.image) # check binary thresholds
+    print(graph) # show adjacency list with matplot
+
+    # Get kdtree for text and also a seperate dictionary for just text 
+    text_kdtree, text_boxes = a.create_kdtree_from_boxes(bounding_boxes, graph.image)
+
+    # Add ["label"] and ["value"] to bounding_boxes
+    bounding_boxes = a.assign_values(bounding_boxes, text_kdtree, text_boxes)
+    
+    # Take data and convert to ltspice 
+    ltspice_file_str = c.graph_to_ltspice(graph.adjacency_list, bounding_boxes, image)
+
+
+
+
+
+```
 ## Methodology
 
 First take in input image:

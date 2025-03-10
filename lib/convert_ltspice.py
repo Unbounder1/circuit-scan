@@ -57,7 +57,7 @@ def compute_positions_bfs(adj_list):
 
     return positions, orientations
 
-def snap_to_grid(pos, grid_size=16):
+def snap_to_grid(pos, grid_size=128):
     x, y = pos
     return (round(x / grid_size) * grid_size, round(y / grid_size) * grid_size)
 
@@ -116,7 +116,7 @@ def graph_to_ltspice(adj_list, boxes, image):
     # Get node positions and orientations via BFS.
     positions, orientations = compute_positions_bfs(adj_list)
     # Snap node positions to a grid (this makes them exact multiples of grid_size).
-    positions = {node: snap_to_grid(pos, grid_size=1) for node, pos in positions.items()}
+    positions = {node: snap_to_grid(pos, grid_size=128) for node, pos in positions.items()}
     
     ltspice_lines = []
     ltspice_lines.append("Version 4")
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     import assign_values as a
 
     # Load image
-    image = cv2.imread('image3.png')
+    image = cv2.imread('image4.png')
     image = p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")
@@ -196,14 +196,7 @@ if __name__ == "__main__":
     # Process image to get bounding boxes
     bounding_boxes = p.process_image(image, threshold=0.6)
 
-    bfs_image = image
-
-    # Remove non-junction objects (example: class_id=1 is "junction")
-    for box in bounding_boxes:
-        if box["class_id"] != 1:
-            x1, y1, x2, y2 = int(box["x1"]), int(box["y1"]), int(box["x2"]), int(box["y2"])
-            w, h = max(1, x2 - x1), max(1, y2 - y1)
-            bfs_image[y1:y1 + h, x1:x1 + w] = (0, 0, 0)
+    bfs_image = p.process_bounding_box(bounding_boxes, image)
 
     scale = p.normalize_image(bounding_boxes)
 
@@ -213,11 +206,7 @@ if __name__ == "__main__":
 
     text_kdtree, text_boxes = a.create_kdtree_from_boxes(bounding_boxes, graph.image)
 
-    for box in bounding_boxes:
-        if box["class_id"] != 2 and box["class_id"] != 1:
-            output_label, output_value = a.find_nearest_text(box, text_kdtree, text_boxes)
-            box["label"] = output_label
-            box["value"] = output_value
+    bounding_boxes = a.assign_values(bounding_boxes, text_kdtree, text_boxes)
 
     # Generate LTspice schematic text
     ltspice_file_str = graph_to_ltspice(graph.adjacency_list, bounding_boxes, image)

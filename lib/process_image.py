@@ -102,9 +102,9 @@ def resize_image(image, max_size=1000):
     
     return resized
 
-def normalize_image(bounding_boxes, standard_x=80, standard_y=40):
+def normalize_image(bounding_boxes, standard_x=80, standard_y=80):
     for box in bounding_boxes:
-        if box["class_id"] == 10: # If its a resistor
+        if box["class_id"] != 1 and box["class_id"] !=2: # If its a resistor
             x1 = box["x1"]
             x2 = box["x2"]
             y1 = box["y1"]
@@ -115,6 +115,14 @@ def normalize_image(bounding_boxes, standard_x=80, standard_y=40):
             return scale
     print("No resistor to normalize image")
     return -1
+
+def process_bounding_box(bounding_boxes, image):
+    for box in bounding_boxes:
+        if box["class_id"] != 1: # ignore junctions for bounding box
+            x1, y1, x2, y2 = int(box["x1"]), int(box["y1"]), int(box["x2"]), int(box["y2"])
+            w, h = max(1, x2 - x1), max(1, y2 - y1)
+            image[y1:y1 + h, x1:x1 + w] = (0, 0, 0)
+    return image
 if __name__ == "__main__":
     image = resize_image(cv2.imread('image.png'))# resized image
     bounding_boxes = process_image(image)

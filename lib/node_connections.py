@@ -34,11 +34,11 @@ class node_graph:
         For each node, find all bounding boxes connected directly 
         Add to adjacency list (dictionary) keys -> node; value -> set of connections
     '''
-    def __init__(self, bounding_boxes, image, scalar=1):
+    def __init__(self, bounding_boxes, image, scalar=1, threshold_min=160, threshold_max=255):
         self.scalar = scalar
         self.kdtree, self.boxes = self.create_kdtree_from_boxes(bounding_boxes)
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        _, self.image = cv2.threshold(gray_image, 160, 255, cv2.THRESH_BINARY)  # Ensure binary image --SET TO 250 FOR NO CUTOFF-- (make variable later)
+        _, self.image = cv2.threshold(gray_image, threshold_min, threshold_max, cv2.THRESH_BINARY)  # Ensure binary image --SET TO 250 FOR NO CUTOFF-- (make variable later)
 
         # Set up using DFS: ------
         self.adjacency_list = {}
