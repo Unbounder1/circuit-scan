@@ -57,7 +57,7 @@ def compute_positions_bfs(adj_list):
 
     return positions, orientations
 
-def snap_to_grid(pos, grid_size=128):
+def snap_to_grid(pos, grid_size=256):
     x, y = pos
     return (round(x / grid_size) * grid_size, round(y / grid_size) * grid_size)
 
@@ -151,7 +151,7 @@ def graph_to_ltspice(adj_list, boxes, image):
 
                 # Get rotation
                 if (class_name in rotation_components):
-                    rotation = p.get_rotation_precise(image, box)
+                    rotation = p.get_rotation_precise(box)
                 else:
                     rotation = orientations.get(node, "R0")
 
@@ -202,7 +202,8 @@ if __name__ == "__main__":
 
     # Create graph from processed image
     graph = n.node_graph(bounding_boxes, bfs_image, scalar=scale)
-    # print(graph)
+
+    bounding_boxes = p.associate_rotation(image, bounding_boxes,graph.kdtree)
 
     text_kdtree, text_boxes = a.create_kdtree_from_boxes(bounding_boxes, graph.image)
 
@@ -211,6 +212,20 @@ if __name__ == "__main__":
     # Generate LTspice schematic text
     ltspice_file_str = graph_to_ltspice(graph.adjacency_list, bounding_boxes, image)
 
+    for i, box in enumerate(bounding_boxes):
+        x1, y1, x2, y2 = int(box["x1"]), int(box["y1"]), int(box["x2"]), int(box["y2"])
+        
+        # Calculate correct center of each bounding box
+        center_x = int((x1 + x2) / 2)
+        center_y = int((y1 + y2) / 2)
+
+        # Draw index number on the RGB image (red text)
+        cv2.putText(image, str(i) + ": ", (center_x, center_y), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        
+    cv2.imshow('1-Pixel Contours with Indexes', image)
+
+    print(graph)
 
     with open("test.asc", "w") as f:
         f.write(ltspice_file_str)

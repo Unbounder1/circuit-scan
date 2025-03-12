@@ -1,9 +1,11 @@
 from ultralytics import YOLO
 import cv2
 import json
+from scipy.spatial import KDTree
+import math
 
 model = YOLO("/Users/rdong/Documents/Github/circuit-scan/models/Train_25.pt")
-model_obb = YOLO("/Users/rdong/Documents/Github/circuit-scan/models/obb/train5_obb_e840.pt")
+model_obb = YOLO("/Users/rdong/Documents/Github/circuit-scan/models/obb/train5_obb_e445.pt")
 
 def process_image(image, threshold=0.5): 
     """
@@ -14,6 +16,7 @@ def process_image(image, threshold=0.5):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = model(image)
 
+    #non obb result
     bounding_boxes = []
     for result in results: 
         boxes = result.boxes  # Bounding boxes object
@@ -43,27 +46,18 @@ def process_image(image, threshold=0.5):
 
     return bounding_boxes
 
-def get_rotation_precise(image, box):
+def get_rotation_precise(box):
     """
     Returns the LTspice rotation string based OBB object detection ---- implement later
-    :param:
+    :param image: OpenCV input array
+    :param box: x1,x2,y1,y2 coordinates for bounding box
+    :param kdtree: KDTree for bounding boxes of OBB output
+
     """
-    x1, x2, y1, y2 =  int(box["x1"]), int(box["x2"]), int(box["y1"]), int(box["y2"])
-
-    print(x1, x2, y1, y2)
-
-    # Crop the image using slicing
-    cropped_image = image[y1:y2, x1:x2]
-
-
-    cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
-
-    results = model_obb(cropped_image)
-
-    if results[0].boxes == None:
-        return "R0"  
-
-    _, _, _, _, theta = results[0].boxes.xywhn[0]  
+    if ("theta" in box):
+        theta = box["theta"]
+    else:
+        theta = 0
     
     theta += 0.78
 
@@ -79,7 +73,6 @@ def get_rotation_precise(image, box):
         return "R270"
     else:
         return "R0"
-
 
 def resize_image(image, max_size=1000):
     """
@@ -102,7 +95,7 @@ def resize_image(image, max_size=1000):
     
     return resized
 
-def normalize_image(bounding_boxes, standard_x=80, standard_y=80):
+def normalize_image(bounding_boxes, standard_x=100, standard_y=100):
     for box in bounding_boxes:
         if box["class_id"] != 1 and box["class_id"] !=2: # If its a resistor
             x1 = box["x1"]
@@ -123,6 +116,58 @@ def process_bounding_box(bounding_boxes, image):
             w, h = max(1, x2 - x1), max(1, y2 - y1)
             image[y1:y1 + h, x1:x1 + w] = (0, 0, 0)
     return image
+
+def compute_theta(x1, y1, x2, y2):
+    """Computes the rotation angle θ (in radians) of the bounding box."""
+    theta = math.atan2(y2 - y1, x2 - x1)
+    return theta
+
+def associate_rotation(image, bounding_boxes, kdtree, threshold = 0.5):
+    """
+    Processes images using default specified yolo model
+    :param bounding_boxes: Bounding box input 
+    :param kdtree: bounding box kdtree
+    :return: bounding_boxes with ["theta"] attribute
+    """
+    #obb output
+    obb_results = model_obb(image)
+    for result in obb_results: 
+        boxes = result.boxes  # Bounding boxes object
+        
+        if result.obb is None:
+            print("Warning: No OBB detections found!")
+            continue
+
+        obb_coords = result.obb.xyxyxyxy  # Polygon format (4 points per box)
+        class_ids = result.obb.cls.int()  # Class ID for each box
+        confs = result.obb.conf  # Confidence scores
+        names = [result.names[cls.item()] for cls in class_ids]  # Class names
+
+        for i in range(len(obb_coords)):
+            if confs[i].item() < threshold:
+                continue
+
+            # Extract polygon points
+            obb_points = obb_coords[i] 
+
+            x1, y1 = obb_points[0]
+            x2, y2 = obb_points[1]
+            x3, y3 = obb_points[2]
+            x4, y4 = obb_points[3]
+            x_c = (x1 + x2 + x3 + x4) / 4
+            y_c = (y1 + y2 + y3 + y4) / 4
+            class_id = class_ids[i].item()
+            class_name = names[i]
+
+            _, idx = kdtree.query((x_c, y_c), k=1)
+            
+            if (bounding_boxes[idx]["x1"] - 1 <= x_c <= bounding_boxes[idx]["x2"]) and (bounding_boxes[idx]["y1"] - 1 <= y_c <= bounding_boxes[idx]["y2"]):
+                bounding_boxes[idx]["theta"] = compute_theta(x1,y1,x2,y2)
+            else:
+                bounding_boxes[idx]["theta"] = 0
+    
+    return bounding_boxes
+    
 if __name__ == "__main__":
     image = resize_image(cv2.imread('image.png'))# resized image
     bounding_boxes = process_image(image)
@@ -140,8 +185,6 @@ if __name__ == "__main__":
             h, w = int(h), int(w)
             x1, y1 = int(x1), int(y1)
             image[y1:y1 + h, x1:x1 + w] = (0, 0, 0) # set black
-
-    bounding_boxes = process_image(image)
 
     cv2.imshow('Image with White Boxes', image)
     cv2.waitKey(0)
