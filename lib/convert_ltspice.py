@@ -187,7 +187,7 @@ if __name__ == "__main__":
     import assign_values as a
 
     # Load image
-    image = cv2.imread('image4.png')
+    image = cv2.imread('image3.png')
     image = p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")
