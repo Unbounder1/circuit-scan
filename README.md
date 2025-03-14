@@ -28,7 +28,7 @@ text_search_radius=300 // the maximum radius of search for text in components
     import process_image as p
     import node_connections as n
     import assign_values as a
-    import conver_ltspice as c
+    import convert_ltspice as c
     import cv2
 
     # Load image
@@ -41,7 +41,7 @@ text_search_radius=300 // the maximum radius of search for text in components
     bounding_boxes = p.process_image(image, threshold=0.5) 
 
     # Apply bounding box to new image
-    bounded_image = p.process_bounding_box(bounding_zboxes, iamge)
+    bounded_image = p.process_bounding_box(bounding_boxes, image)
 
     # Get image normalization scale (based on component size)
     scale = p.normalize_image(bounding_boxes)

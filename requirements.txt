@@ -7,3 +7,5 @@ re
 pytesseract
 networkx
 matplotlib
+io
+base64

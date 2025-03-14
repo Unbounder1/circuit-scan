@@ -46,34 +46,6 @@ def process_image(image, threshold=0.5):
 
     return bounding_boxes
 
-def get_rotation_precise(box):
-    """
-    Returns the LTspice rotation string based OBB object detection ---- implement later
-    :param image: OpenCV input array
-    :param box: x1,x2,y1,y2 coordinates for bounding box
-    :param kdtree: KDTree for bounding boxes of OBB output
-
-    """
-    if ("theta" in box):
-        theta = box["theta"]
-    else:
-        theta = 0
-    
-    theta += 0.78
-
-    theta /= 1.57 
-
-    if (int(theta) == 0):
-        return "R0"
-    elif (int(theta) == 1.57):
-        return "R90"
-    elif (int(theta) == 3.14):
-        return "R180"
-    elif (int(theta) == 4.71):
-        return "R270"
-    else:
-        return "R0"
-
 def resize_image(image, max_size=1000):
     """
     Resize an image while maintaining aspect ratio such that the longest side is max_size.
