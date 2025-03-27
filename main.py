@@ -15,7 +15,7 @@ app = Flask(__name__)
 def hello_world():
     return "<p>Hello, World!</p>"
 
-@app.route("/process_image", methods=['GET', 'POST'])
+@app.route("/process_image", methods=['POST'])
 def process_image():
     '''
     :return: 
