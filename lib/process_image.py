@@ -3,9 +3,13 @@ import cv2
 import json
 from scipy.spatial import KDTree
 import math
+import os
 
-model = YOLO("/Users/rdong/Documents/Github/circuit-scan/models/Train_25.pt")
-model_obb = YOLO("/Users/rdong/Documents/Github/circuit-scan/models/obb/train5_obb_e445.pt")
+# export YOLO="/Users/rdong/Documents/Github/circuit-scan/models/Train_25.pt"
+# export YOLO_OBB="/Users/rdong/Documents/Github/circuit-scan/models/obb/train5_obb_e445.pt"
+
+model = YOLO(os.getenv('YOLO}'))
+model_obb = YOLO(os.getenv('YOLO_OBB'))
 
 def process_image(image, threshold=0.5): 
     """
