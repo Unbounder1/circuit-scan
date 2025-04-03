@@ -1,52 +1,57 @@
 pipeline {
     agent {
         kubernetes {
-            label 'circuit-scan-ci'
+            label 'k8s-docker-agent'
+            defaultContainer 'jnlp'
             yaml """
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    jenkins: circuit-scan
+    app: circuit-scan-builder
 spec:
   containers:
-    - name: kaniko
-      image: gcr.io/kaniko-project/executor:debug
-      command:
-        - cat
-      tty: true
-      volumeMounts:
-        - name: kaniko-cache
-          mountPath: /kaniko/cache
-  volumes:
-    - name: kaniko-cache
-      emptyDir: {}
+  - name: docker
+    image: docker:20.10.16-dind
+    securityContext:
+      privileged: true
+    args:
+      - --registry-mirror=https://registry-1.docker.io
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+  - name: jnlp
+    image: jenkins/inbound-agent:latest
 """
         }
     }
-
     environment {
-        DOCKER_HUB_REPO = "docker-registry.docker-registry.svc.cluster.local:5000/circuit-scan:latest"
+        REGISTRY = 'docker-registry.docker-registry.svc.cluster.local:5000'
+        IMAGE_NAME = "${REGISTRY}/circuit-scan:latest"
     }
-
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                container('kaniko') {
-                    checkout scm
+                checkout scm
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                container('docker') {
+                    script {
+                        sh 'docker info'
+                        sh "docker build -t ${IMAGE_NAME} ."
+                    }
                 }
             }
         }
-
-        stage('Build & Push Image') {
+        stage('Push Docker Image') {
             steps {
-                container('kaniko') {
-                    sh '''
-                    /kaniko/executor \
-                      --dockerfile=Dockerfile \
-                      --destination=$DOCKER_HUB_REPO \
-                      --context=dir://workspace
-                    '''
+                container('docker') {
+                    script {
+                        // Add a docker login step here if your registry requires authentication.
+                        sh "docker push ${IMAGE_NAME}"
+                    }
                 }
             }
         }
