@@ -12,12 +12,14 @@ spec:
   containers:
     - name: docker
       image: docker:20.10-dind
-      tty: true
       securityContext:
         privileged: true
       env:
         - name: DOCKER_TLS_CERTDIR
           value: ""
+      volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
       command:
         - dockerd-entrypoint.sh
       args:
@@ -26,9 +28,9 @@ spec:
 
     - name: builder
       image: python:3.10-slim
-      tty: true
       command:
         - cat
+      tty: true
       volumeMounts:
         - name: docker-sock
           mountPath: /var/run/docker.sock
