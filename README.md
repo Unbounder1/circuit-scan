@@ -112,3 +112,13 @@ Finally, using a table of symbol mapping and component offsets (components like 
 ## References
 
 **[1]** H. Zhang, Y. Jiang, Y. Zhu, and T. Mitra, “Did you train it the same way? Replicability study on adversarial training,” arXiv preprint arXiv:2106.11559, Jun. 2021. [Online]. Available: https://arxiv.org/pdf/2106.11559.
+
+## Notes
+
+1. gevent uses monkey patching
+	•	gevent replaces standard Python modules (like threading, socket, etc.) with async-friendly versions using greenlets (lightweight coroutines).
+	•	This monkey-patching is great for I/O-bound apps (like APIs waiting on HTTP/database), but breaks things that depend on native threads or strict low-level behavior.
+
+ 2. torch, OpenCV, pytesseract use native threads or C extensions
+	•	Libraries like torch, opencv, and tesseract are implemented in C/C++ and expect true POSIX threads and predictable memory handling.
+	•	When monkey-patching threads (like threading.Lock) with gevent, those native libraries can break — leading to segfaults (SIGSEGV) or deadlocks.

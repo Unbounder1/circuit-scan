@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import cv2
+cv2.setNumThreads(1)
 import numpy as np
 import base64
 
