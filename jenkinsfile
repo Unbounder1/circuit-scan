@@ -35,6 +35,18 @@ spec:
                 checkout scm
             }
         }
+        stage('Network Test') {
+            steps {
+                container('docker') {
+                    script {
+                        // Install curl if not already available (docker:dind image is Alpine-based)
+                        sh "apk update && apk add --no-cache curl"
+                        // Perform a HEAD request to PyPI to check connectivity.
+                        sh "curl -I https://pypi.org"
+                    }
+                }
+            }
+        }
         stage('Build Docker Image') {
             steps {
                 container('docker') {
