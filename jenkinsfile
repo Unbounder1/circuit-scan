@@ -1,10 +1,41 @@
 pipeline {
-    agent any
+    agent {
+        kubernetes {
+            label 'circuit-scan-ci'
+            yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    jenkins: astro-blog-dep
+spec:
+  containers:
+    - name: docker
+      image: docker:20.10-dind
+      tty: true
+      stdin: true
+      securityContext:
+        privileged: true
+        runAsUser: 0
+      env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+      command:
+        - /bin/sh
+      args:
+        - -c
+        - "dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --insecure-registry=docker-registry.docker-registry.svc.cluster.local:5000 & while true; do sleep 100; done"
+      volumeMounts:
+        - name: github-repo-volume
+          mountPath: /workspace/github-repo
+"""
+        }
+    }
 
     environment {
-        APP_NAME = "flask-image-processor"
-        IMAGE_NAME = "flask-image-processor:latest"
-        DOCKER_HUB_REPO = "docker-registry.docker-registry.svc.cluster.local:5000/flask-image-processor"
+        APP_NAME = "circuit-scan"
+        IMAGE_NAME = "circuit-scan:latest"
+        DOCKER_HUB_REPO = "docker-registry.docker-registry.svc.cluster.local:5000/circuit-scan"
     }
 
     stages {
@@ -17,6 +48,7 @@ pipeline {
 
         stage('Install Docker') {
             steps {
+                container('kubectl') {
                 sh '''
                 #!/bin/bash
                 if ! command -v git &> /dev/null
@@ -53,6 +85,7 @@ pipeline {
                     echo "Docker already installed"
                 fi
                 '''
+                }
             }
         }
 
