@@ -7,24 +7,35 @@ apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    jenkins: astro-blog-dep
+    jenkins: circuit-scan
 spec:
   containers:
     - name: docker
       image: docker:20.10-dind
       tty: true
-      stdin: true
       securityContext:
         privileged: true
-        runAsUser: 0
       env:
         - name: DOCKER_TLS_CERTDIR
           value: ""
       command:
-        - /bin/sh
+        - dockerd-entrypoint.sh
       args:
-        - -c
-        - "dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --insecure-registry=docker-registry.docker-registry.svc.cluster.local:5000 & while true; do sleep 100; done"
+        - --host=unix:///var/run/docker.sock
+        - --host=tcp://0.0.0.0:2375
+
+    - name: builder
+      image: python:3.10-slim
+      tty: true
+      command:
+        - cat
+      volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+
+  volumes:
+    - name: docker-sock
+      emptyDir: {}
 """
         }
     }
@@ -38,30 +49,33 @@ spec:
     stages {
         stage('Checkout Code') {
             steps {
-                echo 'Cloning repository...'
-                checkout scm
-            }
-        }
-
-
-        stage('Build Docker Image') {
-            steps {
-                container('docker') {
-                echo 'Building Docker image...'
-                sh "docker build -t ${IMAGE_NAME} ."
+                container('builder') {
+                    checkout scm
                 }
             }
         }
 
-        stage('Push to Docker Hub') {
-            // when {
-            //     branch 'main'  // Push to Docker Hub only on the main branch
-            // }
+        stage('Build Docker Image') {
             steps {
-                container('docker') {
-                echo 'Pushing Docker image to Docker Hub...'
-                sh "docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}"
-                sh "docker push ${DOCKER_HUB_REPO}"
+                container('builder') {
+                    sh '''
+                    echo "Installing Docker CLI inside builder..."
+                    apt-get update && apt-get install -y docker.io
+                    echo "Building image..."
+                    docker build -t $IMAGE_NAME .
+                    '''
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                container('builder') {
+                    sh '''
+                    echo "Tagging and pushing..."
+                    docker tag $IMAGE_NAME $DOCKER_HUB_REPO
+                    docker push $DOCKER_HUB_REPO
+                    '''
                 }
             }
         }
