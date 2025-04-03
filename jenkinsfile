@@ -19,8 +19,8 @@ spec:
           value: ""
       volumeMounts:
         - name: docker-sock
-            mountPath: /var/run/docker.sock
-            subPath: docker.sock
+          mountPath: /var/run/docker.sock
+          subPath: docker.sock
       command:
         - dockerd-entrypoint.sh
       args:
@@ -34,8 +34,8 @@ spec:
       tty: true
       volumeMounts:
         - name: docker-sock
-            mountPath: /var/run/docker.sock
-            subPath: docker.sock
+          mountPath: /var/run/docker.sock
+          subPath: docker.sock
 
   volumes:
     - name: docker-sock
