@@ -10,87 +10,45 @@ metadata:
     jenkins: circuit-scan
 spec:
   containers:
-    - name: docker
-      image: docker:20.10-dind
-      securityContext:
-        privileged: true
-      env:
-        - name: DOCKER_TLS_CERTDIR
-          value: ""
-      volumeMounts:
-        - name: docker-sock
-          mountPath: /var/run/docker.sock
-          subPath: docker.sock
-      command:
-        - dockerd-entrypoint.sh
-      args:
-        - --host=unix:///var/run/docker.sock
-        - --host=tcp://0.0.0.0:2375
-
-    - name: builder
-      image: python:3.10-slim
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:latest
       command:
         - cat
       tty: true
       volumeMounts:
-        - name: docker-sock
-          mountPath: /var/run/docker.sock
-          subPath: docker.sock
-
+        - name: kaniko-cache
+          mountPath: /kaniko/cache
   volumes:
-    - name: docker-sock
+    - name: kaniko-cache
       emptyDir: {}
 """
         }
     }
 
     environment {
-        APP_NAME = "circuit-scan"
-        IMAGE_NAME = "circuit-scan:latest"
-        DOCKER_HUB_REPO = "docker-registry.docker-registry.svc.cluster.local:5000/circuit-scan"
+        DOCKER_HUB_REPO = "docker-registry.docker-registry.svc.cluster.local:5000/circuit-scan:latest"
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                container('builder') {
+                container('kaniko') {
                     checkout scm
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build & Push Image') {
             steps {
-                container('builder') {
+                container('kaniko') {
                     sh '''
-                    echo "Installing Docker CLI inside builder..."
-                    apt-get update && apt-get install -y docker.io
-                    echo "Building image..."
-                    docker build -t $IMAGE_NAME .
+                    /kaniko/executor \
+                      --dockerfile=Dockerfile \
+                      --destination=$DOCKER_HUB_REPO \
+                      --context=dir://workspace
                     '''
                 }
             }
-        }
-
-        stage('Push to Registry') {
-            steps {
-                container('builder') {
-                    sh '''
-                    echo "Tagging and pushing..."
-                    docker tag $IMAGE_NAME $DOCKER_HUB_REPO
-                    docker push $DOCKER_HUB_REPO
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        success {
-            echo 'Pipeline executed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed! Check errors.'
         }
     }
 }
