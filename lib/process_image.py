@@ -8,8 +8,8 @@ import os
 # export YOLO="/Users/rdong/Documents/Github/circuit-scan/models/Train_25.pt"
 # export YOLO_OBB="/Users/rdong/Documents/Github/circuit-scan/models/obb/train5_obb_e445.pt"
 
-model = YOLO(os.getenv('YOLO}'))
-model_obb = YOLO(os.getenv('YOLO_OBB'))
+model = YOLO("./models/yolo.pt")
+model_obb = YOLO("./models/yolo_obb.pt")
 
 def process_image(image, threshold=0.5): 
     """
