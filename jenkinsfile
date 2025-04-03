@@ -43,53 +43,13 @@ spec:
             }
         }
 
-        stage('Install Docker') {
-            steps {
-                container('docker') {
-                sh '''
-                #!/bin/bash
-                if ! command -v git &> /dev/null
-                then
-                    set -e
-
-                    echo "Updating system..."
-                    apt-get update -y
-                    apt-get upgrade -y
-
-                    echo "Installing prerequisites..."
-                    apt-get install -y \
-                        apt-transport-https \
-                        ca-certificates \
-                        curl \
-                        gnupg \
-                        lsb-release
-
-                    echo "Adding Docker’s official GPG key..."
-                    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-                    echo "Setting up Docker repository..."
-                    echo \
-                    "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-                    $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-                    echo "Installing Docker..."
-                    apt-get update -y
-                    apt-get install -y docker-ce docker-ce-cli containerd.io
-
-                    echo "Docker version:"
-                    docker --version
-                else
-                    echo "Docker already installed"
-                fi
-                '''
-                }
-            }
-        }
 
         stage('Build Docker Image') {
             steps {
+                container('docker') {
                 echo 'Building Docker image...'
                 sh "docker build -t ${IMAGE_NAME} ."
+                }
             }
         }
 
@@ -98,9 +58,11 @@ spec:
             //     branch 'main'  // Push to Docker Hub only on the main branch
             // }
             steps {
+                container('docker') {
                 echo 'Pushing Docker image to Docker Hub...'
                 sh "docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}"
                 sh "docker push ${DOCKER_HUB_REPO}"
+                }
             }
         }
     }
