@@ -1,6 +1,9 @@
-models/
+models/yolo_obb.pt 
+models/yolo.pt 
 runs/
 output.json
 output.txt
 POC_Comparator.asc
 test.asc
+test.md
+old_models

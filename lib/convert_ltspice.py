@@ -1,4 +1,30 @@
-import process_image as p
+def get_rotation_precise(box):
+    """
+    Returns the LTspice rotation string based OBB object detection ---- implement later
+    :param image: OpenCV input array
+    :param box: x1,x2,y1,y2 coordinates for bounding box
+    :param kdtree: KDTree for bounding boxes of OBB output
+
+    """
+    if ("theta" in box):
+        theta = box["theta"]
+    else:
+        theta = 0
+    
+    theta += 0.78
+
+    theta /= 1.57 
+
+    if (int(theta) == 0):
+        return "R0"
+    elif (int(theta) == 1.57):
+        return "R90"
+    elif (int(theta) == 3.14):
+        return "R180"
+    elif (int(theta) == 4.71):
+        return "R270"
+    else:
+        return "R0"
 def get_rotation(dx, dy):
     """
     Returns the LTspice rotation string based on the offset direction.
@@ -151,7 +177,7 @@ def graph_to_ltspice(adj_list, boxes, image):
 
                 # Get rotation
                 if (class_name in rotation_components):
-                    rotation = p.get_rotation_precise(box)
+                    rotation = get_rotation_precise(box)
                 else:
                     rotation = orientations.get(node, "R0")
 

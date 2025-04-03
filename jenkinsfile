@@ -1,0 +1,79 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = "flask-image-processor"
+        IMAGE_NAME = "flask-image-processor:latest"
+        DOCKER_HUB_REPO = "localhost:9000/flask-image-processor"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                echo 'Cloning repository...'
+                checkout scm
+            }
+        }
+
+        stage('Set Up Python Environment') {
+            steps {
+                echo 'Installing dependencies...'
+                sh 'pip install --upgrade pip'
+                sh 'pip install -r requirements.txt'
+            }
+        }
+
+        stage('Linting') {
+            steps {
+                echo 'Running linter...'
+                sh 'flake8 --max-line-length=120'  // Ensure you have flake8 installed
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                echo 'Running tests...'
+                sh 'pytest tests/' // Ensure you have pytest tests available
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                sh "docker build -t ${IMAGE_NAME} ."
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            when {
+                branch 'main'  // Push to Docker Hub only on the main branch
+            }
+            steps {
+                echo 'Pushing Docker image to Docker Hub...'
+                withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
+                    sh "docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}"
+                    sh "docker push ${DOCKER_HUB_REPO}"
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                branch 'main'  // Deploy only from the main branch
+            }
+            steps {
+                echo 'Deploying the Flask application...'
+                sh 'docker-compose up -d --force-recreate' // Ensure docker-compose is properly configured
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed! Check errors.'
+        }
+    }
+}

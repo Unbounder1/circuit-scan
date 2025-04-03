@@ -2,7 +2,11 @@ import cv2
 import numpy as np
 from scipy.spatial import KDTree
 import networkx as nx
+import matplotlib
+matplotlib.use('Agg') # Dont use GUI
 import matplotlib.pyplot as plt
+import io
+import base64
 
 classes = [
         "__background__", "text", "junction", "crossover", "terminal", "gnd", "vss",
@@ -46,8 +50,21 @@ class node_graph:
         self.create_graph_from_image()
 
     def __str__(self):
-        self.visualize_adjacency_list(self.adjacency_list)
-        return "Visualized adjacency list in matlab"
+        fig = self.visualize_adjacency_list(self.adjacency_list)
+
+        # Save plot to a memory buffer
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=300, bbox_inches='tight')
+        buf.seek(0)
+
+        image_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        
+        # Return base64 string (as expected for __str__)
+        return image_base64
+    
+    def mat_print(self):
+        plt = self.visualize_adjacency_list(self.adjacency_list)
+        return plt.show()
     
     def create_graph_from_image(self):
         for i in range(0, len(self.boxes)): # for all boxes
@@ -210,7 +227,7 @@ class node_graph:
         
         plt.title("Adjacency List With Positions")
         plt.axis('off')
-        plt.show()
+        return plt
 
 if __name__ == "__main__":
     import process_image as p
