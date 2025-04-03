@@ -7,7 +7,7 @@ COPY requirements.txt requirements.txt
 COPY main.py main.py
 COPY models/* models/
 
-RUN pip3 install -r requirements.txt
+RUN pip install --default-timeout=120 -r requirements.txt
 
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
