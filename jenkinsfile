@@ -45,7 +45,7 @@ spec:
 
         stage('Install Docker') {
             steps {
-                container('kubectl') {
+                container('docker') {
                 sh '''
                 #!/bin/bash
                 if ! command -v git &> /dev/null
