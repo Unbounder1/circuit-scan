@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     tesseract-ocr
 
-RUN pip install --no-cache-dir numpy 
+RUN pip install --no-cache-dir numpy --timeout=10000
 
 RUN pip install --no-cache-dir scipy matplotlib networkx flask gunicorn gevent pytesseract opencv-python-headless
 
