@@ -7,7 +7,9 @@ COPY requirements.txt requirements.txt
 COPY main.py main.py
 COPY models/* models/
 
-RUN pip install --no-cache-dir numpy scipy matplotlib networkx flask gunicorn gevent pytesseract opencv-python-headless
+RUN pip install --no-cache-dir numpy 
+
+RUN pip install --no-cache-dir scipy matplotlib networkx flask gunicorn gevent pytesseract opencv-python-headless
 
 RUN pip install --no-cache-dir ultralytics --timeout=100
 
