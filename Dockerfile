@@ -7,8 +7,6 @@ COPY requirements.txt requirements.txt
 COPY main.py main.py
 COPY models/* models/
 
-RUN apt-get update && apt-get install -y build-essential
-
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
