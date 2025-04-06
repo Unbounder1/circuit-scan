@@ -7,8 +7,6 @@ COPY requirements.txt requirements.txt
 COPY main.py main.py
 COPY models/* models/
 
-RUN pip3 install -r requirements.txt
-
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -16,6 +14,12 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     tesseract-ocr
+
+RUN pip install --no-cache-dir numpy --timeout=100
+
+RUN pip install --no-cache-dir scipy matplotlib networkx flask gunicorn gevent pytesseract opencv-python-headless
+
+RUN pip install --no-cache-dir ultralytics --timeout=100
 
 COPY . .
 

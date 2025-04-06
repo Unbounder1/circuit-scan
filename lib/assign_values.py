@@ -126,10 +126,10 @@ def find_nearest_text(box, kdtree, text_boxes, search_size=2, search_radius=300)
 
     return output_label, output_value
 
-def assign_values(bounding_boxes, text_kdtree, text_boxes):
+def assign_values(bounding_boxes, text_kdtree, text_boxes, search_size=2, search_radius=300):
     for box in bounding_boxes:
         if box["class_id"] != 2 and box["class_id"] != 1:
-            output_label, output_value = find_nearest_text(box, text_kdtree, text_boxes)
+            output_label, output_value = find_nearest_text(box, text_kdtree, text_boxes, search_size, search_radius)
             box["label"] = output_label
             box["value"] = output_value
     return bounding_boxes

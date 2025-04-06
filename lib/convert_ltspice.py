@@ -87,7 +87,7 @@ def snap_to_grid(pos, grid_size=256):
     x, y = pos
     return (round(x / grid_size) * grid_size, round(y / grid_size) * grid_size)
 
-def graph_to_ltspice(adj_list, boxes, image):
+def graph_to_ltspice(adj_list, boxes, grid_size=128):
     """
     Converts a graph to an LTspice .asc file string by processing one node at a time.
     
@@ -142,7 +142,7 @@ def graph_to_ltspice(adj_list, boxes, image):
     # Get node positions and orientations via BFS.
     positions, orientations = compute_positions_bfs(adj_list)
     # Snap node positions to a grid (this makes them exact multiples of grid_size).
-    positions = {node: snap_to_grid(pos, grid_size=128) for node, pos in positions.items()}
+    positions = {node: snap_to_grid(pos, grid_size=grid_size) for node, pos in positions.items()}
     
     ltspice_lines = []
     ltspice_lines.append("Version 4")
