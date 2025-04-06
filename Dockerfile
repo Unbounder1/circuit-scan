@@ -1,4 +1,4 @@
-FROM python:3.13
+FROM python:3.13-slim
 
 WORKDIR /api-circuitscan
 
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     tesseract-ocr
 
-RUN pip install --no-cache-dir numpy --timeout=10000
+RUN pip install --no-cache-dir numpy --timeout=100
 
 RUN pip install --no-cache-dir scipy matplotlib networkx flask gunicorn gevent pytesseract opencv-python-headless
 
