@@ -32,6 +32,18 @@ value_match = {
     "resistor" : "{1-9}*" 
 }
 
+def safe_crop(image, x1, y1, x2, y2, x_padding=5, y_padding=5):
+    height, width = image.shape[:2]
+
+    # Expand the box with padding, and clamp to image bounds
+    x1 = max(0, x1 - x_padding)
+    y1 = max(0, y1 - y_padding)
+    x2 = min(width, x2 + x_padding)
+    y2 = min(height, y2 + y_padding)
+
+
+    return image[y1:y2, x1:x2]
+
 def fix_misread_numbers(value):
     """
     Corrects common OCR misreadings:
@@ -64,7 +76,7 @@ def create_kdtree_from_boxes(boxes, image):
             center_x = (box["x1"] + box["x2"]) / 2
             center_y = (box["y1"] + box["y2"]) / 2
 
-            cropped_image = image[y1-5:y2+5, x1-5:x2+5]
+            cropped_image = safe_crop(image, x1, y1, x2, y2, x_padding=5, y_padding=5)
 
             box_centers.append((center_x, center_y))
             box["text"] = fix_misread_numbers(pytesseract.image_to_string(cropped_image))
