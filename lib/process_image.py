@@ -4,6 +4,7 @@ import json
 from scipy.spatial import KDTree
 import math
 import os
+import base64
 
 # export YOLO="/Users/rdong/Documents/Github/circuit-scan/models/Train_25.pt"
 # export YOLO_OBB="/Users/rdong/Documents/Github/circuit-scan/models/obb/train5_obb_e445.pt"
@@ -19,6 +20,16 @@ def process_image(image, threshold=0.5):
     """
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = model(image)
+
+    annotated_image = results[0].plot(
+    conf=True,         
+    line_width=2
+    )
+
+    # Encode image to PNG format (returns success flag and buffer)
+    _, buffer = cv2.imencode(".png", annotated_image)
+
+    img_base64 = base64.b64encode(buffer).decode("utf-8")
 
     #non obb result
     bounding_boxes = []
@@ -48,7 +59,7 @@ def process_image(image, threshold=0.5):
     # Print bounding boxes 
     # print(json.dumps(bounding_boxes, indent=
 
-    return bounding_boxes
+    return bounding_boxes, img_base64
 
 def resize_image(image, max_size=1000):
     """
@@ -66,24 +77,37 @@ def resize_image(image, max_size=1000):
     # Compute new dimensions
     new_w = int(w * scale)
     new_h = int(h * scale)
+
+    print(f"Width = {new_w}, Height = {new_h}")
     
     resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
     
     return resized
 
 def normalize_image(bounding_boxes, standard_x=100, standard_y=100):
+    scales = []
+
     for box in bounding_boxes:
-        if box["class_id"] != 1 and box["class_id"] !=2: # If its a resistor
-            x1 = box["x1"]
-            x2 = box["x2"]
-            y1 = box["y1"]
-            y2 = box["y2"]
-            scalarx = standard_x/(x2-x1)
-            scalary = standard_y/(y2-y1)
-            scale = (scalarx+scalary)/2 # Return average of ratio of difference between resistor bounding & ideal
-            return scale
-    print("No resistor to normalize image")
-    return -1
+        if box["class_id"] not in [1, 2]:
+            x1, x2 = box["x1"], box["x2"]
+            y1, y2 = box["y1"], box["y2"]
+
+            width = x2 - x1
+            height = y2 - y1
+
+            if width == 0 or height == 0:
+                continue  # skip invalid box
+
+            scalarx = standard_x / width
+            scalary = standard_y / height
+            scale = (scalarx + scalary) / 2
+            scales.append(scale)
+
+    if not scales:
+        print("No resistor to normalize image")
+        return -1
+
+    return sum(scales) / len(scales)
 
 def process_bounding_box(bounding_boxes, image):
     for box in bounding_boxes:
@@ -98,7 +122,7 @@ def compute_theta(x1, y1, x2, y2):
     theta = math.atan2(y2 - y1, x2 - x1)
     return theta
 
-def associate_rotation(image, bounding_boxes, kdtree, threshold = 0.5):
+def associate_rotation(image, bounding_boxes, kdtree, threshold = 0.1):
     """
     Processes images using default specified yolo model
     :param bounding_boxes: Bounding box input 
@@ -108,7 +132,6 @@ def associate_rotation(image, bounding_boxes, kdtree, threshold = 0.5):
     #obb output
     obb_results = model_obb(image)
     for result in obb_results: 
-        boxes = result.boxes  # Bounding boxes object
         
         if result.obb is None:
             print("Warning: No OBB detections found!")
@@ -132,8 +155,6 @@ def associate_rotation(image, bounding_boxes, kdtree, threshold = 0.5):
             x4, y4 = obb_points[3]
             x_c = (x1 + x2 + x3 + x4) / 4
             y_c = (y1 + y2 + y3 + y4) / 4
-            class_id = class_ids[i].item()
-            class_name = names[i]
 
             _, idx = kdtree.query((x_c, y_c), k=1)
             
@@ -141,6 +162,13 @@ def associate_rotation(image, bounding_boxes, kdtree, threshold = 0.5):
                 bounding_boxes[idx]["theta"] = compute_theta(x1,y1,x2,y2)
             else:
                 bounding_boxes[idx]["theta"] = 0
+
+    for box in bounding_boxes:
+        try:
+            print(f"The angle of the thing is {box['theta']}")
+        except:
+            continue
+
     
     return bounding_boxes
     

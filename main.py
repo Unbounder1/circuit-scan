@@ -31,8 +31,8 @@ def process_image():
     if "input" not in input:
         return jsonify({"error": "No image provided"}), 400
     
-    process_image_threshold = get_config_value(input, 'process_image_threshold', 0.5)  # object detection accuracy threshold
-    resize_image_max = get_config_value(input, 'resize_image_max', 1000)               # resize image size
+    process_image_threshold = get_config_value(input, 'process_image_threshold', 0.3)  # object detection accuracy threshold
+    resize_image_max = get_config_value(input, 'resize_image_max', 2000)               # resize image size
     normalize_x = get_config_value(input, 'normalize_x', 80)                           # default goal resistor size-x
     normalize_y = get_config_value(input, 'normalize_y', 80)                           # default goal resistor size-y
     binary_threshold_min = get_config_value(input, 'binary_threshold_min', 160)          # min threshold when converting to binary
@@ -47,12 +47,17 @@ def process_image():
     image_array = np.frombuffer(image_bytes, np.uint8)
     image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
+    image2 = image
+
     # Use configuration variables instead of hard-coded values
     p.resize_image(image, max_size=resize_image_max)
-    bounding_boxes = p.process_image(image, threshold=process_image_threshold)
+    bounding_boxes, img_base64 = p.process_image(image, threshold=process_image_threshold)
     bounded_image = p.process_bounding_box(bounding_boxes, image)
     scale = p.normalize_image(bounding_boxes, standard_x=normalize_x, standard_y=normalize_y)
+    print(scale)
     graph = n.node_graph(bounding_boxes, bounded_image, scalar=scale, threshold_min=binary_threshold_min, threshold_max=binary_threshold_max)
+
+    bounding_boxes = p.associate_rotation(image2, bounding_boxes,graph.kdtree)
     
     text_kdtree, text_boxes = a.create_kdtree_from_boxes(bounding_boxes, graph.image)
     bounding_boxes = a.assign_values(bounding_boxes, text_kdtree, text_boxes, search_size=text_search_size, search_radius=text_search_radius, )
@@ -73,6 +78,6 @@ def process_image():
 
     return {
         "ltspice": ltspice_file_str,
-        "mlplot": ml_plot,
+        "mlplot": img_base64,
         "graph": graph_plot
     }

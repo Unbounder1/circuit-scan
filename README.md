@@ -49,6 +49,9 @@ text_search_radius=300 // the maximum radius of search for text in components
     # Create adjacency list graph
     graph = n.node_graph(bounding_boxes, bounded_image, scalar=scale)
 
+    # Create the rotation parameter for every component
+    bounding_boxes = p.associate_rotation(image, bounding_boxes,graph.kdtree)
+
     # Debug Adjacency list creation && image
     cv2.imshow('1-Pixel Contours with Indexes', graph.image) # check binary thresholds
     print(graph) # show adjacency list with matplot

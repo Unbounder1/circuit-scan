@@ -3,6 +3,7 @@ import numpy as np
 import json
 import cv2
 
-model = YOLO("models/obb/train5_obb_e900.pt")
+model = YOLO("old_models/Best_OBB.pt")
 
-model.predict(source = "image.png", save=True, conf=0.1)
+result = model("image3.png")
+model.predict(source = "image3.png", save=True, conf=0.1)

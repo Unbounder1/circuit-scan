@@ -1,30 +1,24 @@
+import math
+
 def get_rotation_precise(box):
     """
-    Returns the LTspice rotation string based OBB object detection ---- implement later
-    :param image: OpenCV input array
-    :param box: x1,x2,y1,y2 coordinates for bounding box
-    :param kdtree: KDTree for bounding boxes of OBB output
-
+    Converts a rotation angle (in radians) to the nearest LTspice-style rotation.
+    Supports: R0, R90, R180, R270
     """
-    if ("theta" in box):
-        theta = box["theta"]
-    else:
-        theta = 0
+    theta = box.get("theta", 0.0)
+
+    # Normalize theta to [0, 2π)
+    theta = theta % (2 * math.pi)
+
+    # Convert to degrees for easier comparison
+    angle_deg = math.degrees(theta)
+
+    # Snap to nearest multiple of 90 degrees
+    snapped_angle = round(angle_deg / 90) * 90
+    snapped_angle = snapped_angle % 360  # Ensure within [0, 360)
+
+    return f"R{snapped_angle}"
     
-    theta += 0.78
-
-    theta /= 1.57 
-
-    if (int(theta) == 0):
-        return "R0"
-    elif (int(theta) == 1.57):
-        return "R90"
-    elif (int(theta) == 3.14):
-        return "R180"
-    elif (int(theta) == 4.71):
-        return "R270"
-    else:
-        return "R0"
 def get_rotation(dx, dy):
     """
     Returns the LTspice rotation string based on the offset direction.
