@@ -21,16 +21,15 @@ def get_rotation_precise(box):
     
 def get_rotation(dx, dy):
     """
-    Returns the LTspice rotation string based on the offset direction.
-    (dy = 0)  => R0   (facing left/right)
-    (dx = 0)  => R90  (facing up/down)
+    Returns the LTspice rotation string based on relative direction of offset.
+    
+    - If horizontal movement dominates (abs(dx) > abs(dy)) → R0 (horizontal)
+    - If vertical movement dominates (abs(dy) > abs(dx)) → R90 (vertical)
     """
-    if dx == 0:
-        return "R0"
-    elif dy == 0:
-        return "R90"
+    if abs(dy) < abs(dx):
+        return "R90"   # more horizontal → left/right
     else:
-        return "R1"
+        return "R0"  # more vertical → up/down
     
 def compute_positions_bfs(adj_list):
     """
@@ -48,6 +47,14 @@ def compute_positions_bfs(adj_list):
     for node in adj_list.keys():
         if node not in visited:
             positions[node] = (1000, 1000)
+            neighbors = list(adj_list.get(node, []))
+
+            if neighbors:
+                dx, dy = neighbors[0][1]
+                orientations[node] = get_rotation(-dx, -dy)  # Opposite of the first edge
+            else:
+                orientations[node] = "R0"
+
             queue = [node]
             visited.add(node)
 

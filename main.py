@@ -32,13 +32,13 @@ def process_image():
         return jsonify({"error": "No image provided"}), 400
     
     process_image_threshold = get_config_value(input, 'process_image_threshold', 0.3)  # object detection accuracy threshold
-    resize_image_max = get_config_value(input, 'resize_image_max', 2000)               # resize image size
+    resize_image_max = get_config_value(input, 'resize_image_max', 1000)               # resize image size
     normalize_x = get_config_value(input, 'normalize_x', 80)                           # default goal resistor size-x
     normalize_y = get_config_value(input, 'normalize_y', 80)                           # default goal resistor size-y
     binary_threshold_min = get_config_value(input, 'binary_threshold_min', 160)          # min threshold when converting to binary
     binary_threshold_max = get_config_value(input, 'binary_threshold_max', 255)          # maximum threshold to convert to white
     kdtree_bounding_threshold = get_config_value(input, 'kdtree_bounding_threshold', 1)    # threshold for bounding boxes when calculating the kdtree
-    grid_size = get_config_value(input, 'grid_size', 128)                              # default ltspice snapping grid size
+    grid_size = get_config_value(input, 'grid_size', 32)                              # default ltspice snapping grid size
     text_search_size = get_config_value(input, 'text_search_size', 2)                    # number of text options to search per component
     text_search_radius = get_config_value(input, 'text_search_radius', 300)              # maximum radius of search for text in components
 
@@ -53,7 +53,7 @@ def process_image():
     p.resize_image(image, max_size=resize_image_max)
     bounding_boxes, img_base64 = p.process_image(image, threshold=process_image_threshold)
     bounded_image = p.process_bounding_box(bounding_boxes, image)
-    scale = p.normalize_image(bounding_boxes, standard_x=normalize_x, standard_y=normalize_y)
+    scale = 1.5 * p.normalize_image(bounding_boxes, standard_x=normalize_x, standard_y=normalize_y)
     print(scale)
     graph = n.node_graph(bounding_boxes, bounded_image, scalar=scale, threshold_min=binary_threshold_min, threshold_max=binary_threshold_max)
 
