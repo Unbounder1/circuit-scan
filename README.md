@@ -7,6 +7,8 @@ Converts images/drawings to LTSpice diagrams
 
 ## Function Usage
 
+    docker buildx create --usedocker buildx build --platform linux/amd64 -t unbounder/circuitscan . --push 
+    
 ### Defaults
 
 ```c++
