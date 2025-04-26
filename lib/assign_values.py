@@ -23,13 +23,21 @@ classes = [
 ]
 
 label_match = {
-    # "component name": "regex of label"
-    "resistor" : "R*" 
+    # Reference designators: R1, R27, etc.
+    "resistor"      : r"^R\d+$",
+    # Inductor designators: L1, L10, etc.
+    "inductor"      : r"^L\d+$",
+    # Voltage sources: V1, VCC, VDD, VSS, etc.
+    "voltage"       : r"^V[A-Za-z0-9_]*$",
 }
 
 value_match = {
-    # "component name" : "regex of value"
-    "resistor" : "{1-9}*" 
+    # Resistor values: 10Ω, 4.7kΩ, 100R, 2.2MΩ, etc.
+    "resistor"      : r"^[0-9]*\.?[0-9]+(?:[kKmM]?Ω|[kKmM]?R)$",
+    # Inductor values: 10uH, 2.2 mH, 100H, etc.
+    "inductor"      : r"^[0-9]*\.?[0-9]+(?:uH|μH|mH|H)$",
+    # Voltage values: 3.3V, 5V, 12V, etc.
+    "voltage"       : r"^[0-9]*\.?[0-9]+V$",
 }
 
 def safe_crop(image, x1, y1, x2, y2, x_padding=5, y_padding=5):
