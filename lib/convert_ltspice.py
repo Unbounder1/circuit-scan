@@ -1,6 +1,6 @@
 import math
 
-def get_rotation_precise(box):
+def get_rotation_precise(box, offset=-90):
     """
     Converts a rotation angle (in radians) to the nearest LTspice-style rotation.
     Supports: R0, R90, R180, R270
@@ -14,7 +14,7 @@ def get_rotation_precise(box):
     angle_deg = math.degrees(theta)
 
     # Snap to nearest multiple of 90 degrees
-    snapped_angle = round(angle_deg / 90) * 90
+    snapped_angle = round((angle_deg+offset) / 90) * 90
     snapped_angle = snapped_angle % 360  # Ensure within [0, 360)
 
     return f"R{snapped_angle}"
@@ -121,10 +121,13 @@ def graph_to_ltspice(adj_list, boxes, grid_size=128):
         "voltage.dc": "voltage",
         "voltage.ac": "voltage",
         "voltage.battery": "voltage",
+        "terminal": "FLAG",
         "gnd": "FLAG",
         "capacitor.unpolarized": "Cap",
         "capacitor.polarized": "Cap",
         "inductor": "Ind",
+        "diode": "diode",
+
         # ... add more mappings as needed ...
     }
     # Define pin offsets if the LTspice symbol's electrical pin is not at (0,0).
@@ -133,11 +136,13 @@ def graph_to_ltspice(adj_list, boxes, grid_size=128):
         "voltage": {"R0": (0, 0), "R90": (0, 0), "R180": (0, 0), "R270": (0, 0)},
         "Cap": {"R0": (16, 32), "R90": (16, 16)},
         "Ind": {"R0": (16, 16), "R90": (-48, 16)},
+        "diode": {"R90": (16, 16), "R270": (-16, -16)},
         # ... add more components as needed ...
     }
     rotation_components = {
-        "voltage.dc", "voltage.ac", "voltage.battery",
-        "diode", "diode.light_emitting", "diode.thyrector", "diode.zener",
+        # classname, offset (degrees)
+        "voltage": 0,
+        "diode": -90
     }
     
     # Get node positions and orientations via BFS.
@@ -177,8 +182,8 @@ def graph_to_ltspice(adj_list, boxes, grid_size=128):
                 symbol = class_to_symbol.get(class_name, "Unknown")
 
                 # Get rotation
-                if (class_name in rotation_components):
-                    rotation = get_rotation_precise(box)
+                if (class_name.split('.')[0] in rotation_components.keys()):
+                    rotation = get_rotation_precise(box, rotation_components[class_name.split('.')[0]])
                 else:
                     rotation = orientations.get(node, "R0")
 
@@ -187,20 +192,23 @@ def graph_to_ltspice(adj_list, boxes, grid_size=128):
                 # Adjust the position by subtracting the pin offset.
                 adjusted_x = x - pin_offset[0]
                 adjusted_y = y - pin_offset[1]
-                ltspice_lines.append(f"SYMBOL {symbol} {adjusted_x} {adjusted_y} {rotation}")
+
+                if symbol == "FLAG":
+                    inst_name = "GND"
+                    ltspice_lines.append(f"FLAG {adjusted_x} {adjusted_y} 0")
 
                 # Set the instance name based on the symbol type.
-                if box["label"] != "":
-                    inst_name = box["label"]
-                elif symbol == "Res":
-                    inst_name = f"R{node}"
-                elif symbol == "voltage":
-                    inst_name = f"V{node}"
-                elif symbol == "FLAG":
-                    inst_name = "GND"
                 else:
-                    inst_name = f"{symbol}{node}"
-                ltspice_lines.append(f"SYMATTR InstName {inst_name}")
+                    ltspice_lines.append(f"SYMBOL {symbol} {adjusted_x} {adjusted_y} {rotation}")
+                    if box["label"] != "":
+                        inst_name = box["label"]
+                    elif symbol == "Res":
+                        inst_name = f"R{node}"
+                    elif symbol == "voltage":
+                        inst_name = f"V{node}"
+                    else:
+                        inst_name = f"{symbol}{node}"
+                    ltspice_lines.append(f"SYMATTR InstName {inst_name}")
 
                 if box["value"] != "":
                     ltspice_lines.append(f"SYMATTR Value {box["value"]}")
@@ -214,18 +222,18 @@ if __name__ == "__main__":
     import assign_values as a
 
     # Load image
-    image = cv2.imread('image3.png')
-    image = p.resize_image(image)
+    image = cv2.imread('image5.png')
+    p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")
         exit(1)
 
     # Process image to get bounding boxes
-    bounding_boxes = p.process_image(image, threshold=0.6)
+    bounding_boxes, img_base64 = p.process_image(image, threshold=0.1)
 
     bfs_image = p.process_bounding_box(bounding_boxes, image)
 
-    scale = p.normalize_image(bounding_boxes)
+    scale = 1.5 * p.normalize_image(bounding_boxes)
 
     # Create graph from processed image
     graph = n.node_graph(bounding_boxes, bfs_image, scalar=scale)
@@ -237,7 +245,7 @@ if __name__ == "__main__":
     bounding_boxes = a.assign_values(bounding_boxes, text_kdtree, text_boxes)
 
     # Generate LTspice schematic text
-    ltspice_file_str = graph_to_ltspice(graph.adjacency_list, bounding_boxes, image)
+    ltspice_file_str = graph_to_ltspice(graph.adjacency_list, bounding_boxes, grid_size=128)
 
     for i, box in enumerate(bounding_boxes):
         x1, y1, x2, y2 = int(box["x1"]), int(box["y1"]), int(box["x2"]), int(box["y2"])
@@ -252,8 +260,7 @@ if __name__ == "__main__":
         
     cv2.imshow('1-Pixel Contours with Indexes', image)
 
-    print(graph)
-
     with open("test.asc", "w") as f:
+        print(ltspice_file_str)
         f.write(ltspice_file_str)
     # print(ltspice_file_str)

@@ -67,7 +67,6 @@ def process_image():
     bounding_boxes, img_base64 = p.process_image(image, threshold=process_image_threshold)
     bounded_image = p.process_bounding_box(bounding_boxes, image)
     scale = 1.5 * p.normalize_image(bounding_boxes, standard_x=normalize_x, standard_y=normalize_y)
-    print(scale)
     graph = n.node_graph(bounding_boxes, bounded_image, scalar=scale, threshold_min=binary_threshold_min, threshold_max=binary_threshold_max)
 
     bounding_boxes = p.associate_rotation(image2, bounding_boxes,graph.kdtree)
