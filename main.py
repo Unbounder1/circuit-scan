@@ -30,17 +30,30 @@ def process_image():
 
     if "input" not in input:
         return jsonify({"error": "No image provided"}), 400
-    
-    process_image_threshold = get_config_value(input, 'process_image_threshold', 0.3)  # object detection accuracy threshold
-    resize_image_max = get_config_value(input, 'resize_image_max', 1000)               # resize image size
-    normalize_x = get_config_value(input, 'normalize_x', 80)                           # default goal resistor size-x
-    normalize_y = get_config_value(input, 'normalize_y', 80)                           # default goal resistor size-y
-    binary_threshold_min = get_config_value(input, 'binary_threshold_min', 160)          # min threshold when converting to binary
-    binary_threshold_max = get_config_value(input, 'binary_threshold_max', 255)          # maximum threshold to convert to white
-    kdtree_bounding_threshold = get_config_value(input, 'kdtree_bounding_threshold', 1)    # threshold for bounding boxes when calculating the kdtree
-    grid_size = get_config_value(input, 'grid_size', 32)                              # default ltspice snapping grid size
-    text_search_size = get_config_value(input, 'text_search_size', 2)                    # number of text options to search per component
-    text_search_radius = get_config_value(input, 'text_search_radius', 300)              # maximum radius of search for text in components
+
+    process_image_threshold = get_config_value(input, 'confidenceThreshold', 0.3)  # object detection accuracy threshold
+    resize_image_max = get_config_value(input, ' resizeImageMax', 1000)               # resize image size
+    normalize_x = get_config_value(input, 'normalizeX', 80)                           # default goal resistor size-x
+    normalize_y = get_config_value(input, 'normalizeY', 80)                           # default goal resistor size-y
+    binary_threshold_min = get_config_value(input, ' binaryThresholdMin', 160)          # min threshold when converting to binary
+    binary_threshold_max = get_config_value(input, ' binaryThresholdMax', 255)          # maximum threshold to convert to white
+    kdtree_bounding_threshold = get_config_value(input, ' kdTreeBoundingThreshold', 1)    # threshold for bounding boxes when calculating the kdtree
+    grid_size = get_config_value(input, 'gridSize', 32)                              # default ltspice snapping grid size
+    text_search_size = get_config_value(input, 'textSearchSize', 2)                    # number of text options to search per component
+    text_search_radius = get_config_value(input, 'textSearchRadius', 300)              # maximum radius of search for text in components
+
+    print({
+    "process_image_threshold": process_image_threshold,
+    "resize_image_max": resize_image_max,
+    "normalize_x": normalize_x,
+    "normalize_y": normalize_y,
+    "binary_threshold_min": binary_threshold_min,
+    "binary_threshold_max": binary_threshold_max,
+    "kdtree_bounding_threshold": kdtree_bounding_threshold,
+    "grid_size": grid_size,
+    "text_search_size": text_search_size,
+    "text_search_radius": text_search_radius
+    })
 
     # Decode image from base64
     image_bytes = base64.b64decode(input["input"]) 
