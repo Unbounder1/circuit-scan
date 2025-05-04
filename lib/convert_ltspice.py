@@ -127,6 +127,7 @@ def graph_to_ltspice(adj_list, boxes, grid_size=128):
         "capacitor.polarized": "Cap",
         "inductor": "Ind",
         "diode": "diode",
+        "transistor.bjt": "npn"
 
         # ... add more mappings as needed ...
     }
@@ -137,12 +138,14 @@ def graph_to_ltspice(adj_list, boxes, grid_size=128):
         "Cap": {"R0": (16, 32), "R90": (16, 16)},
         "Ind": {"R0": (16, 16), "R90": (-48, 16)},
         "diode": {"R90": (16, 16), "R270": (-16, -16)},
+        "npn": {"R0": (64, 96)},
         # ... add more components as needed ...
     }
     rotation_components = {
         # classname, offset (degrees)
         "voltage": 0,
-        "diode": -90
+        "diode": -90,
+        "transistor": 0
     }
     
     # Get node positions and orientations via BFS.
@@ -222,7 +225,7 @@ if __name__ == "__main__":
     import assign_values as a
 
     # Load image
-    image = cv2.imread('image5.png')
+    image = cv2.imread('image.png')
     p.resize_image(image)
     if image is None:
         print("Error: Could not load image.")

@@ -115,7 +115,7 @@ def find_nearest_text(box, kdtree, text_boxes, search_size=2, search_radius=300)
     # Get nearest text box indices
     distances, indices = kdtree.query((x, y), k=min(search_size, len(text_boxes)))
 
-    print(classes[box["class_id"]])
+    #print(classes[box["class_id"]])
     #print(f"Nearby Indices: {text_boxes[indices[0]]["text"]},  {text_boxes[indices[1]]["text"]},  {text_boxes[indices[2]]["text"]}")
 
     # Ensure indices is iterable (if only one result, convert to list)
