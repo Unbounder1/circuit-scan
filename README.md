@@ -4,6 +4,9 @@ Converts images/drawings to LTSpice diagrams
 
 ## TODO
 - Add contrast slider
+- diode R0, R180 
+- npn R90, R180, R270
+
 
 ## Function Usage
 
