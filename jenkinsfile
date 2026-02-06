@@ -16,6 +16,7 @@ spec:
     securityContext:
       privileged: true
     args:
+      - --insecure-registry=docker-registry.docker-registry.svc.cluster.local:5000
       - --registry-mirror=https://registry-1.docker.io
     env:
       - name: DOCKER_TLS_CERTDIR
