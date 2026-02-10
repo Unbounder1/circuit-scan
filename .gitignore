@@ -1,5 +1,3 @@
-models/yolo_obb.pt 
-models/yolo.pt 
 runs/
 output.json
 output.txt
