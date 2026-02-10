@@ -1,27 +1,48 @@
+# Multi-stage build
+FROM python:3.13-slim AS builder
+
+WORKDIR /build
+
+# Install build dependencies in one layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir --prefer-binary \
+    numpy scipy matplotlib networkx flask gunicorn gevent \
+    pytesseract opencv-python-headless ultralytics
+
+# Runtime stage
 FROM python:3.13-slim
 
 WORKDIR /api-circuitscan
 
-COPY lib/* lib/
-COPY requirements.txt requirements.txt
-COPY main.py main.py
-COPY models/* models/
-
-RUN apt-get update && apt-get install -y \
+# Install only runtime dependencies (not build tools)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
-    tesseract-ocr
+    libxrender1 \
+    tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-RUN pip install --no-cache-dir numpy --timeout=100
+# Copy Python packages from builder
+COPY --from=builder /root/.local /root/.local
 
-RUN pip install --no-cache-dir scipy matplotlib networkx flask gunicorn gevent pytesseract opencv-python-headless
+# Copy application code
+COPY lib lib/
+COPY main.py .
+COPY models models/
 
-RUN pip install --no-cache-dir ultralytics --timeout=100
-
-COPY . .
+# Set PATH and Python optimization flags
+ENV PATH=/root/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8001
 
