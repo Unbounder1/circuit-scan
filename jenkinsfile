@@ -12,7 +12,7 @@ metadata:
 spec:
   containers:
   - name: docker
-    image: docker:20.10.16-dind
+    image: docker:27-dind
     securityContext:
       privileged: true
     args:
@@ -40,9 +40,9 @@ spec:
             steps {
                 container('docker') {
                     script {
-                        // Install curl if not already available (docker:dind image is Alpine-based)
+                        // Install curl
                         sh "apk update && apk add --no-cache curl"
-                        // Perform a HEAD request to PyPI to check connectivity.
+                        // Perform a HEAD request to PyPI to check connectivity
                         sh "curl -I https://pypi.org"
                     }
                 }
@@ -62,7 +62,7 @@ spec:
             steps {
                 container('docker') {
                     script {
-                        // Add a docker login step here if your registry requires authentication.
+                        // Add a docker login step here if your registry requires authentication
                         sh "docker push ${IMAGE_NAME}"
                     }
                 }
